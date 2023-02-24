@@ -1,9 +1,9 @@
 {
-    "repos": [
-        {
-            "id": "lnurldevice",
-            "organisation": "lnbits",
-            "repository": "lnurldevice"
-        }
-    ]
+  "repos": [
+    {
+      "id": "lnurldevice",
+      "organisation": "lnbits",
+      "repository": "lnurldevice"
+    }
+  ]
 }

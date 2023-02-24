@@ -52,6 +52,7 @@
               <q-th style="width: 5%"></q-th>
               <q-th style="width: 5%"></q-th>
               <q-th style="width: 5%"></q-th>
+              <q-th style="width: 5%"></q-th>
 
               <q-th
                 v-for="col in props.cols"
@@ -68,6 +69,18 @@
 
           <template v-slot:body="props">
             <q-tr :props="props">
+              <q-td>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openUpdatelnurldeviceLink(props.row.id)"
+                  icon="edit"
+                  color="blue"
+                >
+                  <q-tooltip>Edit LNURLDevice</q-tooltip>
+                </q-btn>
+              </q-td>
               <q-td>
                 <q-btn
                   flat
@@ -644,7 +657,6 @@
         var lnurldevice = _.findWhere(this.lnurldeviceLinks, {
           id: lnurldevice_id
         })
-        console.log(lnurldevice)
         this.qrCodeDialog.data = _.clone(lnurldevice)
         this.qrCodeDialog.data.url =
           window.location.protocol + '//' + window.location.host
@@ -667,6 +679,7 @@
       removeSwitch: function () {
         var self = this
         self.switches = self.switches - 1
+        self.formDialoglnurldevice.data.switches.pop()
       },
       cancellnurldevice: function (data) {
         var self = this
@@ -724,9 +737,6 @@
           .then(function (response) {
             if (response.data) {
               self.lnurldeviceLinks = response.data.map(maplnurldevice)
-              console.log('response.data')
-              console.log(response.data)
-              console.log('response.data')
             }
           })
           .catch(function (error) {
@@ -780,6 +790,7 @@
           id: lnurldeviceId
         })
         self.formDialoglnurldevice.data = _.clone(lnurldevice._data)
+        self.switches = lnurldevice._data.switches.length - 1
         self.formDialoglnurldevice.show = true
       },
       openlnurldeviceSettings: function (lnurldeviceId) {
