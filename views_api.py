@@ -28,7 +28,7 @@ async def api_lnurldevice_create(data: CreateLnurldevice, req: Request):
 
 
 @lnurldevice_ext.put("/api/v1/lnurlpos/{lnurldevice_id}", dependencies=[Depends(require_admin_key)])
-async def api_lnurldevice_create_or_update(data: CreateLnurldevice, lnurldevice_id: str, req: Request):
+async def api_lnurldevice_update(data: CreateLnurldevice, lnurldevice_id: str, req: Request):
     return await update_lnurldevice(lnurldevice_id, data, req)
 
 
