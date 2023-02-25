@@ -202,7 +202,10 @@
   >
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="sendFormDatalnurldevice" class="q-gutter-md">
-        <h5 v-html="formDialoglnurldevice.data.device" v-if="formDialoglnurldevice.data.id"></h5>
+        <h5
+          v-html="formDialoglnurldevice.data.device"
+          v-if="formDialoglnurldevice.data.id"
+        ></h5>
 
         <q-input
           filled
@@ -280,7 +283,6 @@
                   fill-mask="0"
                   reverse-fill-mask
                   :step="'0.01'"
-                  value="0.00"
                 ></q-input>
               </div>
               <div class="col q-ml-md">
@@ -289,7 +291,6 @@
                   dense
                   v-model.trim="_switch.duration"
                   type="number"
-                  value="1000"
                   label="duration (ms)"
                 ></q-input>
               </div>
@@ -365,7 +366,7 @@
           outline
           color="primary"
           :label="'Switch PIN:' + _switch.pin"
-          @click="lnurlValueFetch(_switch.amount)"
+          @click="lnurlValue = _switch.lnurl"
         ></q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
@@ -507,23 +508,21 @@
         this.qrCodeDialog.data = _.clone(lnurldevice)
         this.qrCodeDialog.data.url =
           window.location.protocol + '//' + window.location.host
-        this.lnurlValueFetch(
-          this.qrCodeDialog.data.switches[0][3],
-          this.qrCodeDialog.data.id
+        this.lnurlValue = this.qrCodeDialog.data.switches[0].lnurl
+        this.websocketConnector(
+          'wss://' + window.location.host + '/api/v1/ws/' + lnurldevice_id
         )
         this.qrCodeDialog.show = true
-      },
-      lnurlValueFetch: function (lnurl, switchId) {
-        this.lnurlValue = lnurl
-        this.websocketConnector(
-          'wss://' + window.location.host + '/api/v1/ws/' + switchId
-        )
       },
       addSwitch: function () {
         if (!this.formDialoglnurldevice.data.switches) {
           this.formDialoglnurldevice.data.switches = []
         }
-        this.formDialoglnurldevice.data.switches.push({"amount": 1, "pin": 0, "duration": 1000});
+        this.formDialoglnurldevice.data.switches.push({
+          amount: 10,
+          pin: 0,
+          duration: 1000
+        })
       },
       removeSwitch: function () {
         this.formDialoglnurldevice.data.switches.pop()

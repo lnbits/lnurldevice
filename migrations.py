@@ -1,5 +1,6 @@
-from lnbits.db import Database
 import json
+
+from lnbits.db import Database
 
 db2 = Database("ext_lnurlpos")
 

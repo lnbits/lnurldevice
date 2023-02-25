@@ -2,8 +2,6 @@ import json
 from sqlite3 import Row
 from typing import List, Optional
 
-# from fastapi import Request
-# from lnurl import encode as lnurl_encode
 from lnurl.types import LnurlPayMetadata
 from pydantic import BaseModel, Json
 
@@ -12,20 +10,7 @@ class LnurldeviceSwitch(BaseModel):
     amount: float = 0.0
     duration: int = 0
     pin: int = 0
-
-    @property
-    def lnurl(self) -> str:
-        # url = req.url_for("lnurldevice.lnurl_v1_params", device_id=self.id)
-    #                 lnurl_encode(
-    #                     url
-    #                     + "?gpio="
-    #                     + str(self.pin1)
-    #                     + "&profit="
-    #                     + str(self.profit1)
-    #                     + "&amount="
-    #                     + str(self.amount1)
-    #                 ),
-        return ""
+    lnurl: Optional[str]
 
 
 class CreateLnurldevice(BaseModel):

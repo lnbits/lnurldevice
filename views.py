@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 from fastapi import Depends, HTTPException, Query, Request
 from fastapi.templating import Jinja2Templates
-from starlette.responses import HTMLResponse, StreamingResponse
+from starlette.responses import HTMLResponse
 
 from lnbits.core.crud import update_payment_status
 from lnbits.core.models import User
@@ -29,9 +29,9 @@ async def displaypin(request: Request, paymentid: str = Query(None)):
     lnurldevicepayment = await get_lnurldevicepayment(paymentid)
     if not lnurldevicepayment:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="No lmurldevice payment"
+            status_code=HTTPStatus.NOT_FOUND, detail="No lnurldevice payment"
         )
-    device = await get_lnurldevice(lnurldevicepayment.deviceid)
+    device = await get_lnurldevice(lnurldevicepayment.deviceid, request)
     if not device:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="lnurldevice not found."
@@ -48,15 +48,3 @@ async def displaypin(request: Request, paymentid: str = Query(None)):
         "lnurldevice/error.html",
         {"request": request, "pin": "filler", "not_paid": True},
     )
-
-
-@lnurldevice_ext.get("/img/{lnurldevice_id}", response_class=StreamingResponse)
-async def img(request: Request, lnurldevice_id):
-    lnurldevice = await get_lnurldevice(lnurldevice_id)
-    if not lnurldevice:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="LNURLDevice does not exist."
-        )
-    # error: "lnurldevices" has no attribute "lnurl"
-    # return lnurldevice.lnurl(request)
-    return None

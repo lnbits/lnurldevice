@@ -1,7 +1,9 @@
-from typing import List, Optional
 import json
+from typing import List, Optional
 
 import shortuuid
+from fastapi import Request
+from lnurl import encode as lnurl_encode
 
 from lnbits.helpers import urlsafe_short_hash
 
@@ -9,26 +11,28 @@ from . import db
 from .models import CreateLnurldevice, Lnurldevice, LnurldevicePayment
 
 
-async def create_lnurldevice(data: CreateLnurldevice) -> Lnurldevice:
+async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevice:
     if data.device == "pos" or data.device == "atm":
         lnurldevice_id = shortuuid.uuid()[:5]
     else:
         lnurldevice_id = urlsafe_short_hash()
     lnurldevice_key = urlsafe_short_hash()
+
+    if data.switches:
+        url = req.url_for("lnurldevice.lnurl_v1_params", device_id=lnurldevice_id)
+        for _switch in data.switches:
+            _switch.lnurl = lnurl_encode(
+                url
+                + "?gpio="
+                + str(_switch.pin)
+                + "&profit="
+                + str(_switch.amount)
+                + "&amount="
+                + str(_switch.duration)
+            )
+
     await db.execute(
-        """
-        INSERT INTO lnurldevice.lnurldevice (
-            id,
-            key,
-            title,
-            wallet,
-            profit,
-            currency,
-            device,
-            switches
-        )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """,
+        "INSERT INTO lnurldevice.lnurldevice (id, key, title, wallet, profit, currency, device, switches) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         (
             lnurldevice_id,
             lnurldevice_key,
@@ -40,12 +44,27 @@ async def create_lnurldevice(data: CreateLnurldevice) -> Lnurldevice:
             json.dumps(data.switches, default=lambda x: x.dict()),
         ),
     )
-    device = await get_lnurldevice(lnurldevice_id)
+
+    device = await get_lnurldevice(lnurldevice_id, req)
     assert device, "Lnurldevice was created but could not be retrieved"
     return device
 
 
-async def update_lnurldevice(lnurldevice_id: str, data: CreateLnurldevice) -> Lnurldevice:
+async def update_lnurldevice(lnurldevice_id: str, data: CreateLnurldevice, req: Request) -> Lnurldevice:
+
+    if data.switches:
+        url = req.url_for("lnurldevice.lnurl_v1_params", device_id=lnurldevice_id)
+        for _switch in data.switches:
+            _switch.lnurl = lnurl_encode(
+                url
+                + "?gpio="
+                + str(_switch.pin)
+                + "&profit="
+                + str(_switch.amount)
+                + "&amount="
+                + str(_switch.duration)
+            )
+
     await db.execute(
         """
         UPDATE lnurldevice.lnurldevice SET
@@ -67,21 +86,40 @@ async def update_lnurldevice(lnurldevice_id: str, data: CreateLnurldevice) -> Ln
             lnurldevice_id,
         ),
     )
+    device = await get_lnurldevice(lnurldevice_id, req)
+    assert device, "Lnurldevice was updated but could not be retrieved"
+    return device
+
+
+async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurldevice]:
     row = await db.fetchone(
         "SELECT * FROM lnurldevice.lnurldevice WHERE id = ?", (lnurldevice_id,)
     )
-    assert row, "Lnurldevice could no retrieved updated model"
-    return Lnurldevice(**row)
+    if not row:
+        return None
+
+    device = Lnurldevice(**row)
+
+    # this is needed for backwards compabtibility, before the LNURL were cached inside db
+    if device.switches:
+        url = req.url_for("lnurldevice.lnurl_v1_params", device_id=device.id)
+        for _switch in device.switches:
+            if not _switch.lnurl:
+                _switch.lnurl = lnurl_encode(
+                    url
+                    + "?gpio="
+                    + str(_switch.pin)
+                    + "&profit="
+                    + str(_switch.amount)
+                    + "&amount="
+                    + str(_switch.duration)
+                )
+
+    return device
 
 
-async def get_lnurldevice(lnurldevice_id: str) -> Optional[Lnurldevice]:
-    row = await db.fetchone(
-        "SELECT * FROM lnurldevice.lnurldevice WHERE id = ?", (lnurldevice_id,)
-    )
-    return Lnurldevice(**row) if row else None
+async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldevice]:
 
-
-async def get_lnurldevices(wallet_ids: List[str]) -> List[Lnurldevice]:
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
         f"""
@@ -91,7 +129,25 @@ async def get_lnurldevices(wallet_ids: List[str]) -> List[Lnurldevice]:
         (*wallet_ids,),
     )
 
-    return [Lnurldevice(**row) for row in rows]
+    # this is needed for backwards compabtibility, before the LNURL were cached inside db
+    devices = [Lnurldevice(**row) for row in rows]
+
+    for device in devices:
+        if device.switches:
+            url = req.url_for("lnurldevice.lnurl_v1_params", device_id=device.id)
+            for _switch in device.switches:
+                if not _switch.lnurl:
+                    _switch.lnurl = lnurl_encode(
+                        url
+                        + "?gpio="
+                        + str(_switch.pin)
+                        + "&profit="
+                        + str(_switch.amount)
+                        + "&amount="
+                        + str(_switch.duration)
+                    )
+
+    return devices
 
 
 async def delete_lnurldevice(lnurldevice_id: str) -> None:
@@ -107,12 +163,13 @@ async def create_lnurldevicepayment(
     payhash: Optional[str] = None,
     sats: Optional[int] = 0,
 ) -> LnurldevicePayment:
-    device = await get_lnurldevice(deviceid)
-    assert device
-    if device.device == "atm":
-        lnurldevicepayment_id = shortuuid.uuid(name=payload)
-    else:
-        lnurldevicepayment_id = urlsafe_short_hash()
+
+    # TODO: ben what is this for?
+    # if device.device == "atm":
+    #     lnurldevicepayment_id = shortuuid.uuid(name=payload)
+    # else:
+
+    lnurldevicepayment_id = urlsafe_short_hash()
     await db.execute(
         """
         INSERT INTO lnurldevice.lnurldevicepayment (

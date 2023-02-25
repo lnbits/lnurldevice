@@ -3,7 +3,7 @@ import hmac
 from http import HTTPStatus
 from io import BytesIO
 
-from embit import bech32, compact
+from embit import compact
 from fastapi import HTTPException, Query, Request
 
 from lnbits import bolt11
@@ -20,28 +20,6 @@ from .crud import (
 )
 
 
-def bech32_decode(bech):
-    """tweaked version of bech32_decode that ignores length limitations"""
-    if (any(ord(x) < 33 or ord(x) > 126 for x in bech)) or (
-        bech.lower() != bech and bech.upper() != bech
-    ):
-        return
-    bech = bech.lower()
-    device = bech.rfind("1")
-    if device < 1 or device + 7 > len(bech):
-        return
-    if not all(x in bech32.CHARSET for x in bech[device + 1 :]):
-        return
-    hrp = bech[:device]
-    data = [bech32.CHARSET.find(x) for x in bech[device + 1 :]]
-    encoding = bech32.bech32_verify_checksum(hrp, data)
-    if encoding is None:
-        return
-    bits = bech32.convertbits(data[:-6], 5, 8, False)
-    assert bits
-    return bytes(bits)
-
-
 def xor_decrypt(key, blob):
     s = BytesIO(blob)
     variant = s.read(1)[0]
@@ -54,6 +32,7 @@ def xor_decrypt(key, blob):
         raise RuntimeError("Missing nonce bytes")
     if l < 8:
         raise RuntimeError("Nonce is too short")
+
     # reading payload
     l = s.read(1)[0]
     payload = s.read(l)
@@ -93,7 +72,7 @@ async def lnurl_v1_params(
     profit: str = Query(None),
     amount: str = Query(None),
 ):
-    device = await get_lnurldevice(device_id)
+    device = await get_lnurldevice(device_id, request)
     if not device:
         return {
             "status": "ERROR",
@@ -110,9 +89,10 @@ async def lnurl_v1_params(
 
         # Check they're not trying to trick the switch!
         check = False
-        for switch in device.switches(request):
-            if switch[0] == gpio and switch[1] == profit and switch[2] == amount:
-                check = True
+        if device.switches:
+            for switch in device.switches:
+                if switch.pin == gpio and switch.amount== profit and switch.duration == amount:
+                    check = True
         if not check:
             return {"status": "ERROR", "reason": "Switch params wrong"}
 
@@ -134,6 +114,7 @@ async def lnurl_v1_params(
             "maxSendable": price_msat,
             "metadata": device.lnurlpay_metadata,
         }
+
     if len(p) % 4 > 0:
         p += "=" * (4 - (len(p) % 4))
 
@@ -141,9 +122,7 @@ async def lnurl_v1_params(
     pin = 0
     amount_in_cent = 0
     try:
-        result = xor_decrypt(device.key.encode(), data)
-        pin = result[0]
-        amount_in_cent = result[1]
+        pin, amount_in_cent = xor_decrypt(device.key.encode(), data)
     except Exception as exc:
         return {"status": "ERROR", "reason": str(exc)}
 
@@ -217,7 +196,7 @@ async def lnurl_callback(
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="lnurldevicepayment not found."
         )
-    device = await get_lnurldevice(lnurldevicepayment.deviceid)
+    device = await get_lnurldevice(lnurldevicepayment.deviceid, request)
     if not device:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN, detail="lnurldevice not found."
