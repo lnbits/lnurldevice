@@ -23,11 +23,11 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
         for _switch in data.switches:
             _switch.lnurl = lnurl_encode(
                 url
-                + "?gpio="
+                + "?pin="
                 + str(_switch.pin)
-                + "&profit="
-                + str(_switch.amount)
                 + "&amount="
+                + str(_switch.amount)
+                + "&duration="
                 + str(_switch.duration)
             )
 
@@ -57,11 +57,11 @@ async def update_lnurldevice(lnurldevice_id: str, data: CreateLnurldevice, req: 
         for _switch in data.switches:
             _switch.lnurl = lnurl_encode(
                 url
-                + "?gpio="
+                + "?pin="
                 + str(_switch.pin)
-                + "&profit="
-                + str(_switch.amount)
                 + "&amount="
+                + str(_switch.amount)
+                + "&duration="
                 + str(_switch.duration)
             )
 
@@ -107,11 +107,11 @@ async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurlde
             if not _switch.lnurl:
                 _switch.lnurl = lnurl_encode(
                     url
-                    + "?gpio="
+                    + "?pin="
                     + str(_switch.pin)
-                    + "&profit="
-                    + str(_switch.amount)
                     + "&amount="
+                    + str(_switch.amount)
+                    + "&duration="
                     + str(_switch.duration)
                 )
 
@@ -139,11 +139,11 @@ async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldev
                 if not _switch.lnurl:
                     _switch.lnurl = lnurl_encode(
                         url
-                        + "?gpio="
+                        + "?pin="
                         + str(_switch.pin)
-                        + "&profit="
-                        + str(_switch.amount)
                         + "&amount="
+                        + str(_switch.amount)
+                        + "&duration="
                         + str(_switch.duration)
                     )
 

@@ -55,7 +55,7 @@ def xor_decrypt(key, blob):
     s = BytesIO(payload)
     pin = compact.read_from(s)
     amount_in_cent = compact.read_from(s)
-    return pin, amount_in_cent
+    return str(pin), amount_in_cent
 
 
 @lnurldevice_ext.get(
@@ -68,9 +68,9 @@ async def lnurl_v1_params(
     device_id: str = Query(None),
     p: str = Query(None),
     atm: str = Query(None),
-    gpio: str = Query(None),
-    profit: str = Query(None),
+    pin: str = Query(None),
     amount: str = Query(None),
+    duration: str = Query(None),
 ):
     device = await get_lnurldevice(device_id, request)
     if not device:
@@ -78,11 +78,12 @@ async def lnurl_v1_params(
             "status": "ERROR",
             "reason": f"lnurldevice {device_id} not found on this server",
         }
+
+    amount_in_cent = 0
+
     if device.device == "switch":
-        # TODO: AMOUNT IN CENT was never reference here
-        amount_in_cent = 0
         price_msat = (
-            await fiat_amount_as_satoshis(float(profit), device.currency)
+            await fiat_amount_as_satoshis(float(amount), device.currency)
             if device.currency != "sat"
             else amount_in_cent
         ) * 1000
@@ -91,7 +92,7 @@ async def lnurl_v1_params(
         check = False
         if device.switches:
             for switch in device.switches:
-                if switch.pin == int(gpio) and switch.amount == float(profit) and switch.duration == int(amount):
+                if switch.pin == int(pin) and switch.amount == float(amount) and switch.duration == int(duration):
                     check = True
                     continue
         if not check:
@@ -99,13 +100,14 @@ async def lnurl_v1_params(
 
         lnurldevicepayment = await create_lnurldevicepayment(
             deviceid=device.id,
-            payload=amount,
+            payload=duration,
             sats=price_msat,
-            pin=gpio,
+            pin=pin,
             payhash="bla",
         )
         if not lnurldevicepayment:
             return {"status": "ERROR", "reason": "Could not create payment."}
+
         return {
             "tag": "payRequest",
             "callback": request.url_for(
@@ -120,8 +122,6 @@ async def lnurl_v1_params(
         p += "=" * (4 - (len(p) % 4))
 
     data = base64.urlsafe_b64decode(p)
-    pin = 0
-    amount_in_cent = 0
     try:
         pin, amount_in_cent = xor_decrypt(device.key.encode(), data)
     except Exception as exc:
@@ -142,7 +142,7 @@ async def lnurl_v1_params(
                 deviceid=device.id,
                 payload=p,
                 sats=price_msat * 1000,
-                pin=str(pin),
+                pin=pin,
                 payhash="payment_hash",
             )
         except:
@@ -165,7 +165,7 @@ async def lnurl_v1_params(
         deviceid=device.id,
         payload=p,
         sats=price_msat * 1000,
-        pin=str(pin),
+        pin=pin,
         payhash="payment_hash",
     )
     if not lnurldevicepayment:
