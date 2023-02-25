@@ -1,7 +1,7 @@
 from lnbits.db import Database
+import json
 
 db2 = Database("ext_lnurlpos")
-
 
 async def m001_initial(db):
     """
@@ -82,18 +82,12 @@ async def m002_redux(db):
 
 
 async def m003_redux(db):
-    """
-    Add 'meta' for storing various metadata about the wallet
-    """
     await db.execute(
         "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN amount INT DEFAULT 0;"
     )
 
 
 async def m004_redux(db):
-    """
-    Add 'meta' for storing various metadata about the wallet
-    """
     await db.execute(
         "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN pin INT DEFAULT 0"
     )
@@ -137,3 +131,69 @@ async def m004_redux(db):
     await db.execute(
         "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN pin4 INT DEFAULT 0"
     )
+
+
+async def m005_redux(db):
+    """ migrate to generate switches array as json """
+
+    new_db = "lnurldevice.lnurldevice"
+    old_db = "lnurldevice.lnurldevices"
+
+    # create new table with name in singular
+    await db.execute(
+        f"""
+        CREATE TABLE {new_db} (
+            id TEXT NOT NULL PRIMARY KEY,
+            key TEXT NOT NULL,
+            title TEXT NOT NULL,
+            wallet TEXT NOT NULL,
+            currency TEXT NOT NULL,
+            device TEXT NOT NULL,
+            profit FLOAT NOT NULL,
+            switches TEXT,
+            timestamp TIMESTAMP NOT NULL DEFAULT {db.timestamp_now}
+        );
+    """
+    )
+    # migration date from old table
+    keys = "id,key,title,wallet,currency,device,profit,timestamp"
+    await db.execute(f"INSERT INTO {new_db} ({keys}) SELECT {keys} FROM {old_db}")
+
+    # migration from old switches to new ones
+    rows = await db.execute(f"SELECT * FROM {old_db}")
+    for row in await rows.fetchall():
+      switches = []
+      if row.amount > 0:
+          switches.append({
+              "amount": row.profit,
+              "pin": row.pin,
+              "duration": row.amount,
+          })
+      if row.amount1 > 0:
+          switches.append({
+              "amount": row.profit1,
+              "pin": row.pin1,
+              "duration": row.amount1,
+          })
+      if row.amount2 > 0:
+          switches.append({
+              "amount": row.profit2,
+              "pin": row.pin2,
+              "duration": row.amount2,
+          })
+      if row.amount3 > 0:
+          switches.append({
+              "amount": row.profit3,
+              "pin": row.pin3,
+              "duration": row.amount3,
+          })
+      if row.amount4 > 0:
+          switches.append({
+              "amount": row.profit4,
+              "pin": row.pin4,
+              "duration": row.amount4,
+          })
+      await db.execute(f"UPDATE {new_db} set switches = ? where id = ?", (json.dumps(switches),row.id))
+
+    # drop old table columns
+    # await db.execute("DROP TABLE lnurldevice.lnurldevices")

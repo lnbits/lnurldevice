@@ -19,16 +19,17 @@ async def wait_for_paid_invoices():
 
 async def on_invoice_paid(payment: Payment) -> None:
     # (avoid loops)
-    if "Switch" == payment.extra.get("tag"):
+    if payment.extra.get("tag") == "Switch":
         lnurldevicepayment = await get_lnurldevicepayment(payment.extra["id"])
+
         if not lnurldevicepayment:
             return
         if lnurldevicepayment.payhash == "used":
             return
+
         lnurldevicepayment = await update_lnurldevicepayment(
             lnurldevicepayment_id=payment.extra["id"], payhash="used"
         )
-        assert lnurldevicepayment
         return await websocketUpdater(
             lnurldevicepayment.deviceid,
             str(lnurldevicepayment.pin) + "-" + str(lnurldevicepayment.payload),
