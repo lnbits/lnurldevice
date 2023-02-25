@@ -91,8 +91,9 @@ async def lnurl_v1_params(
         check = False
         if device.switches:
             for switch in device.switches:
-                if switch.pin == gpio and switch.amount== profit and switch.duration == amount:
+                if switch.pin == int(gpio) and switch.amount == float(profit) and switch.duration == int(amount):
                     check = True
+                    continue
         if not check:
             return {"status": "ERROR", "reason": "Switch params wrong"}
 
@@ -194,12 +195,12 @@ async def lnurl_callback(
     lnurldevicepayment = await get_lnurldevicepayment(paymentid)
     if not lnurldevicepayment:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="lnurldevicepayment not found."
+            status_code=HTTPStatus.NOT_FOUND, detail="lnurldevicepayment not found."
         )
     device = await get_lnurldevice(lnurldevicepayment.deviceid, request)
     if not device:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="lnurldevice not found."
+            status_code=HTTPStatus.NOT_FOUND, detail="lnurldevice not found."
         )
     if device.device == "atm":
         if lnurldevicepayment.payload == lnurldevicepayment.payhash:
