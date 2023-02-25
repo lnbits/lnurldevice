@@ -41,28 +41,6 @@ class Lnurldevice(BaseModel):
     def lnurlpay_metadata(self) -> LnurlPayMetadata:
         return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
 
-    # def switches(self, req: Request) -> List:
-    #     switches = []
-    #     if self.profit1 > 0:
-    #         url = req.url_for("lnurldevice.lnurl_v1_params", device_id=self.id)
-    #         switches.append(
-    #             [
-    #                 str(self.pin1),
-    #                 str(self.profit1),
-    #                 str(self.amount1),
-    #                 lnurl_encode(
-    #                     url
-    #                     + "?gpio="
-    #                     + str(self.pin1)
-    #                     + "&profit="
-    #                     + str(self.profit1)
-    #                     + "&amount="
-    #                     + str(self.amount1)
-    #                 ),
-    #             ]
-    #         )
-    #     return switches
-
 
 class LnurldevicePayment(BaseModel):
     id: str

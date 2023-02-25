@@ -197,4 +197,4 @@ async def m005_redux(db):
       await db.execute(f"UPDATE {new_db} set switches = ? where id = ?", (json.dumps(switches),row.id))
 
     # drop old table columns
-    # await db.execute("DROP TABLE lnurldevice.lnurldevices")
+    await db.execute(f"DROP TABLE {old_db}")
