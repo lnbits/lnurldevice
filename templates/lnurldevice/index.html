@@ -18,7 +18,7 @@
       <q-card-section>
         <div class="row items-center no-wrap q-mb-md">
           <div class="col">
-            <h5 class="text-subtitle1 q-my-none">lNURLdevice</h5>
+            <h5 class="text-subtitle1 q-my-none">LNURLdevice</h5>
           </div>
 
           <div class="col-auto">
@@ -202,6 +202,11 @@
   >
     <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
       <q-form @submit="sendFormDatalnurldevice" class="q-gutter-md">
+        <h5
+          v-html="formDialoglnurldevice.data.device"
+          v-if="formDialoglnurldevice.data.id"
+        ></h5>
+
         <q-input
           filled
           dense
@@ -228,6 +233,7 @@
           :options="currency"
         ></q-select>
         <q-option-group
+          v-if="!formDialoglnurldevice.data.id"
           v-model.trim="formDialoglnurldevice.data.device"
           :options="devices"
           color="primary"
@@ -250,7 +256,7 @@
             size="sm"
             icon="add"
             @click="addSwitch"
-            v-model="switches"
+            v-model="formDialoglnurldevice.data.switches"
             color="primary"
           ></q-btn>
           <q-btn
@@ -260,199 +266,37 @@
             size="sm"
             icon="remove"
             @click="removeSwitch"
-            v-model="switches"
+            v-model="formDialoglnurldevice.data.switches"
             color="primary"
           ></q-btn>
-
-          <div v-if="switches >= 0">
+          <div v-for="_switch in formDialoglnurldevice.data.switches">
             <div class="row">
               <div class="col">
                 <q-input
                   ref="setAmount"
                   filled
                   dense
-                  v-model.trim="formDialoglnurldevice.data.profit"
+                  v-model.trim="_switch.amount"
                   class="q-pb-md"
                   :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
-                  :mask="'#.##'"
-                  fill-mask="0"
-                  reverse-fill-mask
-                  :step="'0.01'"
-                  value="0.00"
                 ></q-input>
               </div>
               <div class="col q-ml-md">
                 <q-input
                   filled
                   dense
-                  v-model.trim="formDialoglnurldevice.data.amount"
+                  v-model.trim="_switch.duration"
                   type="number"
-                  value="1000"
-                  label="milesecs to turn Switch on for (1sec = 1000ms)"
+                  label="duration (ms)"
                 ></q-input>
               </div>
               <div class="col q-ml-md">
                 <q-input
                   filled
                   dense
-                  v-model.trim="formDialoglnurldevice.data.pin"
+                  v-model.trim="_switch.pin"
                   type="number"
-                  label="GPIO to turn on"
-                ></q-input>
-              </div>
-            </div>
-          </div>
-          <div v-if="switches >= 1">
-            <div class="row">
-              <div class="col">
-                <q-input
-                  ref="setAmount"
-                  filled
-                  dense
-                  v-model.trim="formDialoglnurldevice.data.profit1"
-                  class="q-pb-md"
-                  :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
-                  :mask="'#.##'"
-                  fill-mask="0"
-                  reverse-fill-mask
-                  :step="'0.01'"
-                  value="0.00"
-                ></q-input>
-              </div>
-              <div class="col q-ml-md">
-                <q-input
-                  filled
-                  dense
-                  v-model.trim="formDialoglnurldevice.data.amount1"
-                  type="number"
-                  value="1000"
-                  label="milesecs to turn Switch on for (1sec = 1000ms)"
-                ></q-input>
-              </div>
-              <div class="col q-ml-md">
-                <q-input
-                  filled
-                  dense
-                  v-model.trim="formDialoglnurldevice.data.pin1"
-                  type="number"
-                  label="GPIO to turn on"
-                ></q-input>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="switches >= 2">
-            <div class="row">
-              <div class="col">
-                <q-input
-                  ref="setAmount"
-                  filled
-                  dense
-                  v-model.trim="formDialoglnurldevice.data.profit2"
-                  class="q-pb-md"
-                  :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
-                  :mask="'#.##'"
-                  fill-mask="0"
-                  reverse-fill-mask
-                  :step="'0.01'"
-                  value="0.00"
-                ></q-input>
-              </div>
-              <div class="col q-ml-md">
-                <q-input
-                  filled
-                  dense
-                  v-model.trim="formDialoglnurldevice.data.amount2"
-                  type="number"
-                  value="1000"
-                  label="milesecs to turn Switch on for (1sec = 1000ms)"
-                ></q-input>
-              </div>
-              <div class="col q-ml-md">
-                <q-input
-                  filled
-                  dense
-                  v-model.trim="formDialoglnurldevice.data.pin2"
-                  type="number"
-                  label="GPIO to turn on"
-                ></q-input>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="switches >= 3">
-            <div class="row">
-              <div class="col">
-                <q-input
-                  ref="setAmount"
-                  filled
-                  dense
-                  v-model.trim="formDialoglnurldevice.data.profit3"
-                  class="q-pb-md"
-                  :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
-                  :mask="'#.##'"
-                  fill-mask="0"
-                  reverse-fill-mask
-                  :step="'0.01'"
-                  value="0.00"
-                ></q-input>
-              </div>
-              <div class="col q-ml-md">
-                <q-input
-                  filled
-                  dense
-                  v-model.trim="formDialoglnurldevice.data.amount3"
-                  type="number"
-                  value="1000"
-                  label="milesecs to turn Switch on for (1sec = 1000ms)"
-                ></q-input>
-              </div>
-              <div class="col q-ml-md">
-                <q-input
-                  filled
-                  dense
-                  v-model.trim="formDialoglnurldevice.data.pin3"
-                  type="number"
-                  label="GPIO to turn on"
-                ></q-input>
-              </div>
-            </div>
-          </div>
-
-          <div v-if="switches >= 4">
-            <div class="row">
-              <div class="col">
-                <q-input
-                  ref="setAmount"
-                  filled
-                  dense
-                  v-model.trim="formDialoglnurldevice.data.profit4"
-                  class="q-pb-md"
-                  :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
-                  :mask="'#.##'"
-                  fill-mask="0"
-                  reverse-fill-mask
-                  :step="'0.01'"
-                  value="0.00"
-                ></q-input>
-              </div>
-              <div class="col q-ml-md">
-                <q-input
-                  filled
-                  dense
-                  v-model.trim="formDialoglnurldevice.data.amount4"
-                  type="number"
-                  value="1000"
-                  label="milesecs to turn Switch on for (1sec = 1000ms)"
-                ></q-input>
-              </div>
-              <div class="col q-ml-md">
-                <q-input
-                  filled
-                  dense
-                  v-model.trim="formDialoglnurldevice.data.pin4"
-                  type="number"
-                  label="GPIO to turn on"
+                  label="GPIO pin"
                 ></q-input>
               </div>
             </div>
@@ -514,11 +358,11 @@
       <br />
       <div class="row q-mt-lg q-gutter-sm">
         <q-btn
-          v-for="switch_ in qrCodeDialog.data.switches"
+          v-for="_switch in qrCodeDialog.data.switches"
           outline
           color="primary"
-          :label="'Switch PIN:' + switch_[0]"
-          @click="lnurlValueFetch(switch_[3])"
+          :label="'Switch PIN:' + _switch.pin"
+          @click="lnurlValue = _switch.lnurl"
         ></q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
@@ -559,7 +403,6 @@
         currency: 'USD',
         lnurlValue: '',
         websocketMessage: '',
-        switches: 0,
         lnurldeviceLinks: [],
         lnurldeviceLinksObj: [],
         devices: [
@@ -631,12 +474,13 @@
         formDialoglnurldevice: {
           show: false,
           data: {
+            switches: [],
             lnurl_toggle: false,
             show_message: false,
             show_ack: false,
             show_price: 'None',
             device: 'pos',
-            profit: 0,
+            profit: 1,
             amount: 1,
             title: ''
           }
@@ -660,27 +504,26 @@
         this.qrCodeDialog.data = _.clone(lnurldevice)
         this.qrCodeDialog.data.url =
           window.location.protocol + '//' + window.location.host
-        this.lnurlValueFetch(
-          this.qrCodeDialog.data.switches[0][3],
-          this.qrCodeDialog.data.id
+        this.lnurlValue = this.qrCodeDialog.data.switches[0].lnurl
+        this.websocketConnector(
+          'wss://' + window.location.host + '/api/v1/ws/' + lnurldevice_id
         )
         this.qrCodeDialog.show = true
       },
-      lnurlValueFetch: function (lnurl, switchId) {
-        this.lnurlValue = lnurl
-        this.websocketConnector(
-          'wss://' + window.location.host + '/api/v1/ws/' + switchId
-        )
-      },
       addSwitch: function () {
-        var self = this
-        self.switches = self.switches + 1
+        if (!this.formDialoglnurldevice.data.switches) {
+          this.formDialoglnurldevice.data.switches = []
+        }
+        this.formDialoglnurldevice.data.switches.push({
+          amount: 10,
+          pin: 0,
+          duration: 1000
+        })
       },
       removeSwitch: function () {
-        var self = this
-        self.switches = self.switches - 1
-        self.formDialoglnurldevice.data.switches.pop()
+        this.formDialoglnurldevice.data.switches.pop()
       },
+
       cancellnurldevice: function (data) {
         var self = this
         self.formDialoglnurldevice.show = false
@@ -790,7 +633,6 @@
           id: lnurldeviceId
         })
         self.formDialoglnurldevice.data = _.clone(lnurldevice._data)
-        self.switches = lnurldevice._data.switches.length - 1
         self.formDialoglnurldevice.show = true
       },
       openlnurldeviceSettings: function (lnurldeviceId) {

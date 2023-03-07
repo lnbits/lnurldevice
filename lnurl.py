@@ -3,7 +3,7 @@ import hmac
 from http import HTTPStatus
 from io import BytesIO
 
-from embit import bech32, compact
+from embit import compact
 from fastapi import HTTPException, Query, Request
 
 from lnbits import bolt11
@@ -20,28 +20,6 @@ from .crud import (
 )
 
 
-def bech32_decode(bech):
-    """tweaked version of bech32_decode that ignores length limitations"""
-    if (any(ord(x) < 33 or ord(x) > 126 for x in bech)) or (
-        bech.lower() != bech and bech.upper() != bech
-    ):
-        return
-    bech = bech.lower()
-    device = bech.rfind("1")
-    if device < 1 or device + 7 > len(bech):
-        return
-    if not all(x in bech32.CHARSET for x in bech[device + 1 :]):
-        return
-    hrp = bech[:device]
-    data = [bech32.CHARSET.find(x) for x in bech[device + 1 :]]
-    encoding = bech32.bech32_verify_checksum(hrp, data)
-    if encoding is None:
-        return
-    bits = bech32.convertbits(data[:-6], 5, 8, False)
-    assert bits
-    return bytes(bits)
-
-
 def xor_decrypt(key, blob):
     s = BytesIO(blob)
     variant = s.read(1)[0]
@@ -54,6 +32,7 @@ def xor_decrypt(key, blob):
         raise RuntimeError("Missing nonce bytes")
     if l < 8:
         raise RuntimeError("Nonce is too short")
+
     # reading payload
     l = s.read(1)[0]
     payload = s.read(l)
@@ -76,7 +55,7 @@ def xor_decrypt(key, blob):
     s = BytesIO(payload)
     pin = compact.read_from(s)
     amount_in_cent = compact.read_from(s)
-    return pin, amount_in_cent
+    return str(pin), amount_in_cent
 
 
 @lnurldevice_ext.get(
@@ -89,42 +68,46 @@ async def lnurl_v1_params(
     device_id: str = Query(None),
     p: str = Query(None),
     atm: str = Query(None),
-    gpio: str = Query(None),
-    profit: str = Query(None),
+    pin: str = Query(None),
     amount: str = Query(None),
+    duration: str = Query(None),
 ):
-    device = await get_lnurldevice(device_id)
+    device = await get_lnurldevice(device_id, request)
     if not device:
         return {
             "status": "ERROR",
             "reason": f"lnurldevice {device_id} not found on this server",
         }
+
+    amount_in_cent = 0
+
     if device.device == "switch":
-        # TODO: AMOUNT IN CENT was never reference here
-        amount_in_cent = 0
         price_msat = (
-            await fiat_amount_as_satoshis(float(profit), device.currency)
+            await fiat_amount_as_satoshis(float(amount), device.currency)
             if device.currency != "sat"
             else amount_in_cent
         ) * 1000
 
         # Check they're not trying to trick the switch!
         check = False
-        for switch in device.switches(request):
-            if switch[0] == gpio and switch[1] == profit and switch[2] == amount:
-                check = True
+        if device.switches:
+            for switch in device.switches:
+                if switch.pin == int(pin) and switch.amount == float(amount) and switch.duration == int(duration):
+                    check = True
+                    continue
         if not check:
             return {"status": "ERROR", "reason": "Switch params wrong"}
 
         lnurldevicepayment = await create_lnurldevicepayment(
             deviceid=device.id,
-            payload=amount,
+            payload=duration,
             sats=price_msat,
-            pin=gpio,
+            pin=pin,
             payhash="bla",
         )
         if not lnurldevicepayment:
             return {"status": "ERROR", "reason": "Could not create payment."}
+
         return {
             "tag": "payRequest",
             "callback": request.url_for(
@@ -134,16 +117,13 @@ async def lnurl_v1_params(
             "maxSendable": price_msat,
             "metadata": device.lnurlpay_metadata,
         }
+
     if len(p) % 4 > 0:
         p += "=" * (4 - (len(p) % 4))
 
     data = base64.urlsafe_b64decode(p)
-    pin = 0
-    amount_in_cent = 0
     try:
-        result = xor_decrypt(device.key.encode(), data)
-        pin = result[0]
-        amount_in_cent = result[1]
+        pin, amount_in_cent = xor_decrypt(device.key.encode(), data)
     except Exception as exc:
         return {"status": "ERROR", "reason": str(exc)}
 
@@ -162,7 +142,7 @@ async def lnurl_v1_params(
                 deviceid=device.id,
                 payload=p,
                 sats=price_msat * 1000,
-                pin=str(pin),
+                pin=pin,
                 payhash="payment_hash",
             )
         except:
@@ -185,7 +165,7 @@ async def lnurl_v1_params(
         deviceid=device.id,
         payload=p,
         sats=price_msat * 1000,
-        pin=str(pin),
+        pin=pin,
         payhash="payment_hash",
     )
     if not lnurldevicepayment:
@@ -215,12 +195,12 @@ async def lnurl_callback(
     lnurldevicepayment = await get_lnurldevicepayment(paymentid)
     if not lnurldevicepayment:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="lnurldevicepayment not found."
+            status_code=HTTPStatus.NOT_FOUND, detail="lnurldevicepayment not found."
         )
-    device = await get_lnurldevice(lnurldevicepayment.deviceid)
+    device = await get_lnurldevice(lnurldevicepayment.deviceid, request)
     if not device:
         raise HTTPException(
-            status_code=HTTPStatus.FORBIDDEN, detail="lnurldevice not found."
+            status_code=HTTPStatus.NOT_FOUND, detail="lnurldevice not found."
         )
     if device.device == "atm":
         if lnurldevicepayment.payload == lnurldevicepayment.payhash:

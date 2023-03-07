@@ -14,7 +14,7 @@ from .crud import (
     get_lnurldevices,
     update_lnurldevice,
 )
-from .models import createLnurldevice
+from .models import CreateLnurldevice
 
 
 @lnurldevice_ext.get("/api/v1/currencies")
@@ -22,67 +22,43 @@ async def api_list_currencies_available():
     return list(currencies.keys())
 
 
-@lnurldevice_ext.post("/api/v1/lnurlpos")
-@lnurldevice_ext.put("/api/v1/lnurlpos/{lnurldevice_id}")
-async def api_lnurldevice_create_or_update(
-    req: Request,
-    data: createLnurldevice,
-    wallet: WalletTypeInfo = Depends(require_admin_key),
-    lnurldevice_id: str = Query(None),
-):
-    if not lnurldevice_id:
-        lnurldevice = await create_lnurldevice(data)
-        return {**lnurldevice.dict(), **{"switches": lnurldevice.switches(req)}}
-    else:
-        lnurldevice = await update_lnurldevice(lnurldevice_id, **data.dict())
-        return {**lnurldevice.dict(), **{"switches": lnurldevice.switches(req)}}
+@lnurldevice_ext.post("/api/v1/lnurlpos", dependencies=[Depends(require_admin_key)])
+async def api_lnurldevice_create(data: CreateLnurldevice, req: Request):
+    return await create_lnurldevice(data, req)
+
+
+@lnurldevice_ext.put("/api/v1/lnurlpos/{lnurldevice_id}", dependencies=[Depends(require_admin_key)])
+async def api_lnurldevice_update(data: CreateLnurldevice, lnurldevice_id: str, req: Request):
+    return await update_lnurldevice(lnurldevice_id, data, req)
 
 
 @lnurldevice_ext.get("/api/v1/lnurlpos")
-async def api_lnurldevices_retrieve(
-    req: Request, wallet: WalletTypeInfo = Depends(get_key_type)
-):
+async def api_lnurldevices_retrieve(req: Request, wallet: WalletTypeInfo = Depends(get_key_type)):
     user = await get_user(wallet.wallet.user)
-    wallet_ids = user.wallet_ids if user else []
-    try:
-        return [
-            {**lnurldevice.dict(), **{"switches": lnurldevice.switches(req)}}
-            for lnurldevice in await get_lnurldevices(wallet_ids)
-        ]
-    except:
-        try:
-            return [
-                {**lnurldevice.dict()}
-                for lnurldevice in await get_lnurldevices(wallet_ids)
-            ]
-        except:
-            return ""
+    assert user, "Lnurldevice cannot retrieve user"
+    return await get_lnurldevices(user.wallet_ids, req)
 
 
 @lnurldevice_ext.get(
     "/api/v1/lnurlpos/{lnurldevice_id}", dependencies=[Depends(get_key_type)]
 )
-async def api_lnurldevice_retrieve(
-    req: Request,
-    lnurldevice_id: str = Query(None),
-):
-    lnurldevice = await get_lnurldevice(lnurldevice_id)
+async def api_lnurldevice_retrieve(req: Request, lnurldevice_id: str = Query(None)):
+    lnurldevice = await get_lnurldevice(lnurldevice_id, req)
     if not lnurldevice:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="lnurldevice does not exist"
         )
-    return {**lnurldevice.dict(), **{"switches": lnurldevice.switches(req)}}
+    return lnurldevice
 
 
 @lnurldevice_ext.delete(
     "/api/v1/lnurlpos/{lnurldevice_id}", dependencies=[Depends(require_admin_key)]
 )
-async def api_lnurldevice_delete(lnurldevice_id: str = Query(None)):
-    lnurldevice = await get_lnurldevice(lnurldevice_id)
+async def api_lnurldevice_delete(req: Request, lnurldevice_id: str = Query(None)):
+    lnurldevice = await get_lnurldevice(lnurldevice_id, req)
     if not lnurldevice:
         raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Wallet link does not exist."
+            status_code=HTTPStatus.NOT_FOUND, detail="Lnurldevice does not exist."
         )
 
     await delete_lnurldevice(lnurldevice_id)
-    return "", HTTPStatus.NO_CONTENT
