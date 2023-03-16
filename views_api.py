@@ -2,12 +2,23 @@ from http import HTTPStatus
 
 from fastapi import Depends, HTTPException, Query, Request
 from lnbits.core.crud import get_user
-from lnbits.decorators import WalletTypeInfo, get_key_type, require_admin_key
+from lnbits.decorators import (
+    WalletTypeInfo,
+    check_admin,
+    get_key_type,
+    require_admin_key,
+)
 from lnbits.utils.exchange_rates import currencies
+from loguru import logger
 
-from . import lnurldevice_ext
-from .crud import (create_lnurldevice, delete_lnurldevice, get_lnurldevice,
-                   get_lnurldevices, update_lnurldevice)
+from . import lnurldevice_ext, scheduled_tasks
+from .crud import (
+    create_lnurldevice,
+    delete_lnurldevice,
+    get_lnurldevice,
+    get_lnurldevices,
+    update_lnurldevice,
+)
 from .models import CreateLnurldevice
 
 
@@ -62,3 +73,16 @@ async def api_lnurldevice_delete(req: Request, lnurldevice_id: str = Query(None)
         )
 
     await delete_lnurldevice(lnurldevice_id)
+
+
+@lnurldevice_ext.delete(
+    "/api/v1", status_code=HTTPStatus.OK, dependencies=[Depends(check_admin)]
+)
+async def api_stop():
+    for t in scheduled_tasks:
+        try:
+            t.cancel()
+        except Exception as ex:
+            logger.warning(ex)
+
+    return {"success": True}
