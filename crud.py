@@ -3,9 +3,9 @@ from typing import List, Optional
 
 import shortuuid
 from fastapi import Request
-from lnurl import encode as lnurl_encode
-
 from lnbits.helpers import urlsafe_short_hash
+
+from lnurl import encode as lnurl_encode
 
 from . import db
 from .models import CreateLnurldevice, Lnurldevice, LnurldevicePayment
@@ -19,7 +19,7 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
     lnurldevice_key = urlsafe_short_hash()
 
     if data.switches:
-        url = req.url_for("lnurldevice.lnurl_v1_params", device_id=lnurldevice_id)
+        url = req.url_for("lnurldevice.lnurl_v2_params", device_id=lnurldevice_id)
         for _switch in data.switches:
             _switch.lnurl = lnurl_encode(
                 url
@@ -50,10 +50,12 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
     return device
 
 
-async def update_lnurldevice(lnurldevice_id: str, data: CreateLnurldevice, req: Request) -> Lnurldevice:
+async def update_lnurldevice(
+    lnurldevice_id: str, data: CreateLnurldevice, req: Request
+) -> Lnurldevice:
 
     if data.switches:
-        url = req.url_for("lnurldevice.lnurl_v1_params", device_id=lnurldevice_id)
+        url = req.url_for("lnurldevice.lnurl_v2_params", device_id=lnurldevice_id)
         for _switch in data.switches:
             _switch.lnurl = lnurl_encode(
                 url
@@ -102,7 +104,7 @@ async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurlde
 
     # this is needed for backwards compabtibility, before the LNURL were cached inside db
     if device.switches:
-        url = req.url_for("lnurldevice.lnurl_v1_params", device_id=device.id)
+        url = req.url_for("lnurldevice.lnurl_v2_params", device_id=device.id)
         for _switch in device.switches:
             if not _switch.lnurl:
                 _switch.lnurl = lnurl_encode(
@@ -134,7 +136,7 @@ async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldev
 
     for device in devices:
         if device.switches:
-            url = req.url_for("lnurldevice.lnurl_v1_params", device_id=device.id)
+            url = req.url_for("lnurldevice.lnurl_v2_params", device_id=device.id)
             for _switch in device.switches:
                 if not _switch.lnurl:
                     _switch.lnurl = lnurl_encode(
@@ -189,7 +191,9 @@ async def create_lnurldevicepayment(
     return dpayment
 
 
-async def update_lnurldevicepayment(lnurldevicepayment_id: str, **kwargs) -> LnurldevicePayment:
+async def update_lnurldevicepayment(
+    lnurldevicepayment_id: str, **kwargs
+) -> LnurldevicePayment:
     q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
         f"UPDATE lnurldevice.lnurldevicepayment SET {q} WHERE id = ?",
