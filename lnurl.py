@@ -5,7 +5,6 @@ from io import BytesIO
 
 from embit import compact
 from fastapi import HTTPException, Query, Request
-
 from lnbits import bolt11
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice
@@ -68,9 +67,38 @@ async def lnurl_v1_params(
     device_id: str = Query(None),
     p: str = Query(None),
     atm: str = Query(None),
+    gpio: str = Query(None),
+    profit: str = Query(None),
+    amount: str = Query(None),
+):
+    return await lnurl_params(request, device_id, p, atm, gpio, profit, amount)
+
+
+@lnurldevice_ext.get(
+    "/api/v2/lnurl/{device_id}",
+    status_code=HTTPStatus.OK,
+    name="lnurldevice.lnurl_v2_params",
+)
+async def lnurl_v2_params(
+    request: Request,
+    device_id: str = Query(None),
+    p: str = Query(None),
+    atm: str = Query(None),
     pin: str = Query(None),
     amount: str = Query(None),
     duration: str = Query(None),
+):
+    return await lnurl_params(request, device_id, p, atm, pin, amount, duration)
+
+
+async def lnurl_params(
+    request: Request,
+    device_id: str,
+    p: str,
+    atm: str,
+    pin: str,
+    amount: str,
+    duration: str,
 ):
     device = await get_lnurldevice(device_id, request)
     if not device:
@@ -92,7 +120,11 @@ async def lnurl_v1_params(
         check = False
         if device.switches:
             for switch in device.switches:
-                if switch.pin == int(pin) and switch.amount == float(amount) and switch.duration == int(duration):
+                if (
+                    switch.pin == int(pin)
+                    and switch.amount == float(amount)
+                    and switch.duration == int(duration)
+                ):
                     check = True
                     continue
         if not check:

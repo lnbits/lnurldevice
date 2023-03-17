@@ -34,4 +34,3 @@ async def on_invoice_paid(payment: Payment) -> None:
             lnurldevicepayment.deviceid,
             str(lnurldevicepayment.pin) + "-" + str(lnurldevicepayment.payload),
         )
-    return
