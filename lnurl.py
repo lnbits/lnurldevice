@@ -5,6 +5,7 @@ from io import BytesIO
 
 from embit import compact
 from fastapi import HTTPException, Query, Request
+
 from lnbits import bolt11
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice

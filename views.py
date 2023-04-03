@@ -2,11 +2,12 @@ from http import HTTPStatus
 
 from fastapi import Depends, HTTPException, Query, Request
 from fastapi.templating import Jinja2Templates
+from starlette.responses import HTMLResponse
+
 from lnbits.core.crud import update_payment_status
 from lnbits.core.models import User
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import check_user_exists
-from starlette.responses import HTMLResponse
 
 from . import lnurldevice_ext, lnurldevice_renderer
 from .crud import get_lnurldevice, get_lnurldevicepayment
