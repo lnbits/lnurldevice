@@ -1,6 +1,8 @@
 from http import HTTPStatus
 
 from fastapi import Depends, HTTPException, Query, Request
+from loguru import logger
+
 from lnbits.core.crud import get_user
 from lnbits.decorators import (
     WalletTypeInfo,
@@ -9,7 +11,6 @@ from lnbits.decorators import (
     require_admin_key,
 )
 from lnbits.utils.exchange_rates import currencies
-from loguru import logger
 
 from . import lnurldevice_ext, scheduled_tasks
 from .crud import (

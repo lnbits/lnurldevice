@@ -2,9 +2,8 @@ import json
 from sqlite3 import Row
 from typing import List, Optional
 
-from pydantic import BaseModel, Json
-
 from lnurl.types import LnurlPayMetadata
+from pydantic import BaseModel, Json
 
 
 class LnurldeviceSwitch(BaseModel):

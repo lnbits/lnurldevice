@@ -3,9 +3,9 @@ from typing import List, Optional
 
 import shortuuid
 from fastapi import Request
-from lnbits.helpers import urlsafe_short_hash
-
 from lnurl import encode as lnurl_encode
+
+from lnbits.helpers import urlsafe_short_hash
 
 from . import db
 from .models import CreateLnurldevice, Lnurldevice, LnurldevicePayment
