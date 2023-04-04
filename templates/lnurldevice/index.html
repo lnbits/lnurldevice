@@ -757,7 +757,7 @@
       LNbits.api
         .request('GET', '/api/v1/currencies')
         .then(response => {
-          this.currency = ['USD', ...response.data]
+          this.currency = ['sat', 'USD', ...response.data]
         })
         .catch(err => {
           LNbits.utils.notifyApiError(err)
