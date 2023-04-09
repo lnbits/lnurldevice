@@ -2,7 +2,7 @@ from http import HTTPStatus
 
 from fastapi import Depends, HTTPException, Query, Request
 from fastapi.templating import Jinja2Templates
-from starlette.responses import HTMLResponse
+from fastapi.responses import HTMLResponse
 
 from lnbits.core.crud import update_payment_status
 from lnbits.core.models import User
@@ -26,7 +26,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 @lnurldevice_ext.get(
     "/{paymentid}", name="lnurldevice.displaypin", response_class=HTMLResponse
 )
-async def displaypin(request: Request, paymentid: str = Query(None)):
+async def displaypin(request: Request, paymentid: str):
     lnurldevicepayment = await get_lnurldevicepayment(paymentid)
     if not lnurldevicepayment:
         raise HTTPException(

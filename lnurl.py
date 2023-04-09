@@ -65,7 +65,7 @@ def xor_decrypt(key, blob):
 )
 async def lnurl_v1_params(
     request: Request,
-    device_id: str = Query(None),
+    device_id: str,
     p: str = Query(None),
     atm: str = Query(None),
     gpio: str = Query(None),
@@ -82,7 +82,7 @@ async def lnurl_v1_params(
 )
 async def lnurl_v2_params(
     request: Request,
-    device_id: str = Query(None),
+    device_id: str,
     p: str = Query(None),
     atm: str = Query(None),
     pin: str = Query(None),
@@ -221,7 +221,7 @@ async def lnurl_params(
 )
 async def lnurl_callback(
     request: Request,
-    paymentid: str = Query(None),
+    paymentid: str,
     pr: str = Query(None),
     k1: str = Query(None),
 ):

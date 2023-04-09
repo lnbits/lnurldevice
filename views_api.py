@@ -54,7 +54,7 @@ async def api_lnurldevices_retrieve(
 @lnurldevice_ext.get(
     "/api/v1/lnurlpos/{lnurldevice_id}", dependencies=[Depends(get_key_type)]
 )
-async def api_lnurldevice_retrieve(req: Request, lnurldevice_id: str = Query(None)):
+async def api_lnurldevice_retrieve(req: Request, lnurldevice_id: str):
     lnurldevice = await get_lnurldevice(lnurldevice_id, req)
     if not lnurldevice:
         raise HTTPException(
@@ -66,7 +66,7 @@ async def api_lnurldevice_retrieve(req: Request, lnurldevice_id: str = Query(Non
 @lnurldevice_ext.delete(
     "/api/v1/lnurlpos/{lnurldevice_id}", dependencies=[Depends(require_admin_key)]
 )
-async def api_lnurldevice_delete(req: Request, lnurldevice_id: str = Query(None)):
+async def api_lnurldevice_delete(req: Request, lnurldevice_id: str):
     lnurldevice = await get_lnurldevice(lnurldevice_id, req)
     if not lnurldevice:
         raise HTTPException(
