@@ -16,6 +16,7 @@ from .crud import (
     create_lnurldevicepayment,
     get_lnurldevice,
     get_lnurldevicepayment,
+    get_lnurldevicepayment_by_p,
     update_lnurldevicepayment,
 )
 
@@ -170,6 +171,9 @@ async def lnurl_params(
         if device.device != "atm":
             return {"status": "ERROR", "reason": "Not ATM device."}
         price_msat = int(price_msat * (1 - (device.profit / 100)) / 1000)
+        lnurldevicepayment = await get_lnurldevicepayment_by_p(p)
+        if lnurldevicepayment:
+            return {"status": "ERROR", "reason": "Payment already claimed"}
         try:
             lnurldevicepayment = await create_lnurldevicepayment(
                 deviceid=device.id,
