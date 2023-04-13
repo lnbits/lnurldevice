@@ -2,4 +2,4 @@
 
 For offline LNURL devices
 
-`Authur: Ben Arc` `Authur: DNI`
+`Author: Ben Arc` `Author: DNI`
