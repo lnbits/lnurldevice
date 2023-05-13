@@ -712,10 +712,10 @@
         if ('WebSocket' in window) {
           self = this
           var ws = new WebSocket(websocketUrl)
-          self.updateWsMessage('Websocket connected')
+          self.updateWsMessage('Websocket established')
           ws.onmessage = function (evt) {
             var received_msg = evt.data
-            self.updateWsMessage('Message recieved: ' + received_msg)
+            self.updateWsMessage('Message broadcasted: ' + received_msg)
           }
           ws.onclose = function () {
             self.updateWsMessage('Connection closed')
