@@ -173,7 +173,8 @@ async def lnurl_params(
         price_msat = int(price_msat * (1 - (device.profit / 100)) / 1000)
         lnurldevicepayment = await get_lnurldevicepayment_by_p(p)
         if lnurldevicepayment:
-            return {"status": "ERROR", "reason": "Payment already claimed"}
+            if lnurldevicepayment.payload == lnurldevicepayment.payhash
+                return {"status": "ERROR", "reason": "Payment already claimed"}
         try:
             lnurldevicepayment = await create_lnurldevicepayment(
                 deviceid=device.id,
