@@ -173,7 +173,8 @@ async def lnurl_params(
         price_msat = int(price_msat * (1 - (device.profit / 100)) / 1000)
         lnurldevicepayment = await get_lnurldevicepayment_by_p(p)
         if lnurldevicepayment:
-            return {"status": "ERROR", "reason": "Payment already claimed"}
+            if lnurldevicepayment.payload == lnurldevicepayment.payhash:
+                return {"status": "ERROR", "reason": "Payment already claimed"}
         try:
             lnurldevicepayment = await create_lnurldevicepayment(
                 deviceid=device.id,
@@ -256,17 +257,19 @@ async def lnurl_callback(
                 return {"status": "ERROR", "reason": "Bad K1"}
             if lnurldevicepayment.payhash != "payment_hash":
                 return {"status": "ERROR", "reason": "Payment already claimed"}
-
-            lnurldevicepayment_updated = await update_lnurldevicepayment(
-                lnurldevicepayment_id=paymentid, payhash=lnurldevicepayment.payload
-            )
-            assert lnurldevicepayment_updated
-            await pay_invoice(
-                wallet_id=device.wallet,
-                payment_request=pr,
-                max_sat=int(lnurldevicepayment_updated.sats / 1000),
-                extra={"tag": "withdraw"},
-            )
+            try:
+                lnurldevicepayment_updated = await update_lnurldevicepayment(
+                    lnurldevicepayment_id=paymentid, payhash=lnurldevicepayment.payload
+                )
+                assert lnurldevicepayment_updated
+                await pay_invoice(
+                    wallet_id=device.wallet,
+                    payment_request=pr,
+                    max_sat=int(lnurldevicepayment_updated.sats / 1000),
+                    extra={"tag": "withdraw"},
+                )
+            except:
+                return {"status": "ERROR", "reason": "Payment failed, use a different wallet."}
             return {"status": "OK"}
     if device.device == "switch":
         payment_hash, payment_request = await create_invoice(
