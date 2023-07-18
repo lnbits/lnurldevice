@@ -109,8 +109,6 @@ async def lnurl_params(
             "reason": f"lnurldevice {device_id} not found on this server",
         }
 
-    amount_in_cent = 0
-
     if device.device == "switch":
         price_msat = int((
             await fiat_amount_as_satoshis(float(amount), device.currency)
