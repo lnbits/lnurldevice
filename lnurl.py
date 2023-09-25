@@ -193,7 +193,7 @@ async def lnurl_params(
             "k1": p,
             "minWithdrawable": price_msat * 1000,
             "maxWithdrawable": price_msat * 1000,
-            "defaultDescription": device.title,
+            "defaultDescription": device.title + str(lnurldevicepayment.pin),
         }
     price_msat = int(price_msat * ((device.profit / 100) + 1) / 1000)
 
