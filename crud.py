@@ -22,7 +22,7 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
         url = req.url_for("lnurldevice.lnurl_v2_params", device_id=lnurldevice_id)
         for _switch in data.switches:
             _switch.lnurl = lnurl_encode(
-                url
+                str(url)
                 + "?pin="
                 + str(_switch.pin)
                 + "&amount="
@@ -58,7 +58,7 @@ async def update_lnurldevice(
         url = req.url_for("lnurldevice.lnurl_v2_params", device_id=lnurldevice_id)
         for _switch in data.switches:
             _switch.lnurl = lnurl_encode(
-                url
+                str(url)
                 + "?pin="
                 + str(_switch.pin)
                 + "&amount="
@@ -108,7 +108,7 @@ async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurlde
         for _switch in device.switches:
             if not _switch.lnurl:
                 _switch.lnurl = lnurl_encode(
-                    url
+                    str(url)
                     + "?pin="
                     + str(_switch.pin)
                     + "&amount="
@@ -140,7 +140,7 @@ async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldev
             for _switch in device.switches:
                 if not _switch.lnurl:
                     _switch.lnurl = lnurl_encode(
-                        url
+                        str(url)
                         + "?pin="
                         + str(_switch.pin)
                         + "&amount="
@@ -221,7 +221,7 @@ async def get_lnurldevicepayment_by_p(
         (p,),
     )
     return LnurldevicePayment(**row) if row else None
-    
+
 async def get_lnurlpayload(
     lnurldevicepayment_payload: str,
 ) -> Optional[LnurldevicePayment]:
