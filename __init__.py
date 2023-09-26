@@ -2,7 +2,6 @@ import asyncio
 from typing import List
 
 from fastapi import APIRouter
-from fastapi.staticfiles import StaticFiles
 
 from lnbits.db import Database
 from lnbits.helpers import template_renderer
@@ -17,14 +16,13 @@ scheduled_tasks: List[asyncio.Task] = []
 lnurldevice_static_files = [
     {
         "path": "/lnurldevice/static",
-        "app": StaticFiles(directory="lnbits/extensions/lnurldevice/static"),
         "name": "lnurldevice_static",
     }
 ]
 
 
 def lnurldevice_renderer():
-    return template_renderer(["lnbits/extensions/lnurldevice/templates"])
+    return template_renderer(["lnurldevice/templates"])
 
 
 from .lnurl import *  # noqa: F401,F403
