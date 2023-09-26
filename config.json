@@ -3,5 +3,5 @@
   "short_description": "For offline LNURL devices",
   "tile": "/lnurldevice/static/image/lnurldevice.png",
   "contributors": ["arcbtc"],
-  "min_lnbits_version": "0.XX.0"
+  "min_lnbits_version": "0.11.0"
 }
