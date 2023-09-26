@@ -16,7 +16,7 @@ from .crud import (
     create_lnurldevicepayment,
     get_lnurldevice,
     get_lnurldevicepayment,
-    get_lnurldevicepayment_by_p,
+    get_lnurlpayload,
     update_lnurldevicepayment,
 )
 
@@ -169,20 +169,21 @@ async def lnurl_params(
         if device.device != "atm":
             return {"status": "ERROR", "reason": "Not ATM device."}
         price_msat = int(price_msat * (1 - (device.profit / 100)) / 1000)
-        lnurldevicepayment = await get_lnurldevicepayment_by_p(p)
+        lnurldevicepayment = await get_lnurlpayload(p)
         if lnurldevicepayment:
             if lnurldevicepayment.payload == lnurldevicepayment.payhash:
                 return {"status": "ERROR", "reason": "Payment already claimed"}
-        try:
-            lnurldevicepayment = await create_lnurldevicepayment(
-                deviceid=device.id,
-                payload=p,
-                sats=price_msat * 1000,
-                pin=pin,
-                payhash="payment_hash",
-            )
-        except:
-            return {"status": "ERROR", "reason": "Could not create ATM payment."}
+        if not lnurldevicepayment:
+            try:
+                lnurldevicepayment = await create_lnurldevicepayment(
+                    deviceid=device.id,
+                    payload=p,
+                    sats=price_msat * 1000,
+                    pin=pin,
+                    payhash="payment_hash",
+                )
+            except:
+                return {"status": "ERROR", "reason": "Could not create ATM payment."}
         if not lnurldevicepayment:
             return {"status": "ERROR", "reason": "Could not create ATM payment."}
         return {
@@ -267,6 +268,9 @@ async def lnurl_callback(
                     extra={"tag": "withdraw"},
                 )
             except:
+                await update_lnurldevicepayment(
+                    lnurldevicepayment_id=paymentid, payhash="payment_hash"
+                )
                 return {"status": "ERROR", "reason": "Payment failed, use a different wallet."}
             return {"status": "OK"}
     if device.device == "switch":
