@@ -142,9 +142,9 @@ async def lnurl_params(
 
         return {
             "tag": "payRequest",
-            "callback": request.url_for(
+            "callback": str(request.url_for(
                 "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
-            ),
+            )),
             "minSendable": price_msat,
             "maxSendable": price_msat,
             "metadata": device.lnurlpay_metadata,
@@ -181,15 +181,15 @@ async def lnurl_params(
                 pin=pin,
                 payhash="payment_hash",
             )
-        except:
+        except Exception:
             return {"status": "ERROR", "reason": "Could not create ATM payment."}
         if not lnurldevicepayment:
             return {"status": "ERROR", "reason": "Could not create ATM payment."}
         return {
             "tag": "withdrawRequest",
-            "callback": request.url_for(
+            "callback": str(request.url_for(
                 "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
-            ),
+            )),
             "k1": p,
             "minWithdrawable": price_msat * 1000,
             "maxWithdrawable": price_msat * 1000,
@@ -208,9 +208,9 @@ async def lnurl_params(
         return {"status": "ERROR", "reason": "Could not create payment."}
     return {
         "tag": "payRequest",
-        "callback": request.url_for(
+        "callback": str(request.url_for(
             "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
-        ),
+        )),
         "minSendable": price_msat * 1000,
         "maxSendable": price_msat * 1000,
         "metadata": device.lnurlpay_metadata,
@@ -266,7 +266,7 @@ async def lnurl_callback(
                     max_sat=int(lnurldevicepayment_updated.sats / 1000),
                     extra={"tag": "withdraw"},
                 )
-            except:
+            except Exception:
                 return {"status": "ERROR", "reason": "Payment failed, use a different wallet."}
             return {"status": "OK"}
     if device.device == "switch":
@@ -307,7 +307,7 @@ async def lnurl_callback(
         "successAction": {
             "tag": "url",
             "description": "Check the attached link",
-            "url": request.url_for("lnurldevice.displaypin", paymentid=paymentid),
+            "url": str(request.url_for("lnurldevice.displaypin", paymentid=paymentid)),
         },
         "routes": [],
     }
