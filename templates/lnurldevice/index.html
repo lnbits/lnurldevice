@@ -395,7 +395,7 @@
           v-for="_switch in qrCodeDialog.data.switches"
           outline
           color="primary"
-          :label="'Switch PIN:' + _switch.pin"
+          :label="'Switch PIN:' + _switch.pin + ' (' + _switch.duration + ' ms)'"
           @click="lnurlValue = _switch.lnurl"
         ></q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
@@ -715,7 +715,7 @@
           self.updateWsMessage('Websocket connected')
           ws.onmessage = function (evt) {
             var received_msg = evt.data
-            self.updateWsMessage('Message recieved: ' + received_msg)
+            self.updateWsMessage('Message received: ' + received_msg)
           }
           ws.onclose = function () {
             self.updateWsMessage('Connection closed')
