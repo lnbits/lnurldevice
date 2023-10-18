@@ -395,7 +395,7 @@
           v-for="_switch in qrCodeDialog.data.switches"
           outline
           color="primary"
-          :label="'Switch PIN:' + _switch.pin + ' (' + _switch.duration + ' ms)'"
+          :label="'Switch pin:' + _switch.pin + ' (' + _switch.duration + ' ms)'"
           @click="lnurlValue = _switch.lnurl"
         ></q-btn>
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>

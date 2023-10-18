@@ -193,7 +193,7 @@ async def lnurl_params(
             "k1": p,
             "minWithdrawable": price_msat * 1000,
             "maxWithdrawable": price_msat * 1000,
-            "defaultDescription": f"{device.title} - pin: {str(lnurldevicepayment.pin)}",
+            "defaultDescription": f"{device.title} - pin: {lnurldevicepayment.pin}",
         }
     price_msat = int(price_msat * ((device.profit / 100) + 1) / 1000)
 
@@ -273,7 +273,7 @@ async def lnurl_callback(
         payment_hash, payment_request = await create_invoice(
             wallet_id=device.wallet,
             amount=int(lnurldevicepayment.sats / 1000),
-            memo=device.id + " PIN " + str(lnurldevicepayment.pin),
+            memo=f"{device.id} pin {lnurldevicepayment.pin} ({lnurldevicepayment.payload} ms)",
             unhashed_description=device.lnurlpay_metadata.encode(),
             extra={
                 "tag": "Switch",
