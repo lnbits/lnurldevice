@@ -32,5 +32,5 @@ async def on_invoice_paid(payment: Payment) -> None:
         )
         return await websocketUpdater(
             lnurldevicepayment.deviceid,
-            str(lnurldevicepayment.pin) + "-" + str(lnurldevicepayment.payload),
+            f"{lnurldevicepayment.pin}-{lnurldevicepayment.payload}",
         )

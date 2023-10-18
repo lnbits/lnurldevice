@@ -23,12 +23,9 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
         for _switch in data.switches:
             _switch.lnurl = lnurl_encode(
                 str(url)
-                + "?pin="
-                + str(_switch.pin)
-                + "&amount="
-                + str(_switch.amount)
-                + "&duration="
-                + str(_switch.duration)
+                + f"?pin={_switch.pin}"
+                + f"&amount={_switch.amount}"
+                + f"&duration={_switch.duration}"
             )
 
     await db.execute(
@@ -59,12 +56,9 @@ async def update_lnurldevice(
         for _switch in data.switches:
             _switch.lnurl = lnurl_encode(
                 str(url)
-                + "?pin="
-                + str(_switch.pin)
-                + "&amount="
-                + str(_switch.amount)
-                + "&duration="
-                + str(_switch.duration)
+                + f"?pin={_switch.pin}"
+                + f"&amount={_switch.amount}"
+                + f"&duration={_switch.duration}"
             )
 
     await db.execute(
@@ -109,12 +103,9 @@ async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurlde
             if not _switch.lnurl:
                 _switch.lnurl = lnurl_encode(
                     str(url)
-                    + "?pin="
-                    + str(_switch.pin)
-                    + "&amount="
-                    + str(_switch.amount)
-                    + "&duration="
-                    + str(_switch.duration)
+                    + f"?pin={_switch.pin}"
+                    + f"&amount={_switch.amount}"
+                    + f"&duration={_switch.duration}"
                 )
 
     return device
@@ -141,12 +132,9 @@ async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldev
                 if not _switch.lnurl:
                     _switch.lnurl = lnurl_encode(
                         str(url)
-                        + "?pin="
-                        + str(_switch.pin)
-                        + "&amount="
-                        + str(_switch.amount)
-                        + "&duration="
-                        + str(_switch.duration)
+                        + f"?pin={_switch.pin}"
+                        + f"&amount={_switch.amount}"
+                        + f"&duration={_switch.duration}"
                     )
 
     return devices
