@@ -26,6 +26,9 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
                 + f"?pin={_switch.pin}"
                 + f"&amount={_switch.amount}"
                 + f"&duration={_switch.duration}"
+                + f"&variable={_switch.variable}"
+                + f"&comment={_switch.comment}"
+                + f"&disabletime=0"
             )
 
     await db.execute(
@@ -59,6 +62,8 @@ async def update_lnurldevice(
                 + f"?pin={_switch.pin}"
                 + f"&amount={_switch.amount}"
                 + f"&duration={_switch.duration}"
+                + f"&variable={_switch.variable}"
+                + f"&comment={_switch.comment}"
             )
 
     await db.execute(
@@ -106,6 +111,8 @@ async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurlde
                     + f"?pin={_switch.pin}"
                     + f"&amount={_switch.amount}"
                     + f"&duration={_switch.duration}"
+                    + f"&variable={_switch.variable}"
+                    + f"&comment={_switch.comment}"
                 )
 
     return device
@@ -135,6 +142,8 @@ async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldev
                         + f"?pin={_switch.pin}"
                         + f"&amount={_switch.amount}"
                         + f"&duration={_switch.duration}"
+                        + f"&variable={_switch.variable}"
+                        + f"&comment={_switch.comment}"
                     )
 
     return devices

@@ -89,8 +89,10 @@ async def lnurl_v2_params(
     pin: str = Query(None),
     amount: str = Query(None),
     duration: str = Query(None),
+    variable: bool = Query(None),
+    comment: bool = Query(None),
 ):
-    return await lnurl_params(request, device_id, p, atm, pin, amount, duration)
+    return await lnurl_params(request, device_id, p, atm, pin, amount, duration, variable, comment)
 
 
 async def lnurl_params(
@@ -101,6 +103,8 @@ async def lnurl_params(
     pin: str,
     amount: str,
     duration: str,
+    variable: bool = Query(None),
+    comment: bool = Query(None),
 ):
     device = await get_lnurldevice(device_id, request)
     if not device:
@@ -110,6 +114,8 @@ async def lnurl_params(
         }
 
     if device.device == "switch":
+        if variable == True:
+            amount = float(amount) * float(duration)
         price_msat = int((
             await fiat_amount_as_satoshis(float(amount), device.currency)
             if device.currency != "sat"
@@ -124,6 +130,8 @@ async def lnurl_params(
                     switch.pin == int(pin)
                     and switch.amount == float(amount)
                     and switch.duration == int(duration)
+                    and switch.variable == bool(variable)
+                    and switch.comment == bool(comment)
                 ):
                     check = True
                     continue
@@ -139,8 +147,7 @@ async def lnurl_params(
         )
         if not lnurldevicepayment:
             return {"status": "ERROR", "reason": "Could not create payment."}
-
-        return {
+        resp = {
             "tag": "payRequest",
             "callback": str(request.url_for(
                 "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
@@ -149,6 +156,11 @@ async def lnurl_params(
             "maxSendable": price_msat,
             "metadata": device.lnurlpay_metadata,
         }
+        if comment == True:
+            resp["commentAllowed"] = 1500
+        if variable == True:
+            resp["maxSendable"] = price_msat * 360
+        return resp
 
     if len(p) % 4 > 0:
         p += "=" * (4 - (len(p) % 4))
