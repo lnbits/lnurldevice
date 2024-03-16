@@ -10,6 +10,8 @@ class LnurldeviceSwitch(BaseModel):
     amount: float = 0.0
     duration: int = 0
     pin: int = 0
+    comment: Optional[bool] = False
+    variable: Optional[bool] = False
     lnurl: Optional[str]
 
 
