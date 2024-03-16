@@ -10,6 +10,7 @@ from lnbits import bolt11
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
+from loguru import logger
 
 from . import lnurldevice_ext
 from .crud import (
@@ -19,6 +20,7 @@ from .crud import (
     get_lnurldevicepayment_by_p,
     update_lnurldevicepayment,
 )
+
 
 
 def xor_decrypt(key, blob):
@@ -114,8 +116,6 @@ async def lnurl_params(
         }
 
     if device.device == "switch":
-        if variable == True:
-            amount = float(amount) * float(duration)
         price_msat = int((
             await fiat_amount_as_satoshis(float(amount), device.currency)
             if device.currency != "sat"
@@ -130,8 +130,8 @@ async def lnurl_params(
                     switch.pin == int(pin)
                     and switch.amount == float(amount)
                     and switch.duration == int(duration)
-                    and switch.variable == bool(variable)
-                    and switch.comment == bool(comment)
+                    and bool(switch.variable) == bool(variable)
+                    and bool(switch.comment) == bool(comment)
                 ):
                     check = True
                     continue
