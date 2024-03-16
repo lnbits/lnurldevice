@@ -137,7 +137,8 @@ async def lnurl_params(
                     continue
         if not check:
             return {"status": "ERROR", "reason": "Switch params wrong"}
-
+        if comment:
+            duration = duration + "-" + comment
         lnurldevicepayment = await create_lnurldevicepayment(
             deviceid=device.id,
             payload=duration,
