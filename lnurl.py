@@ -20,7 +20,7 @@ from .crud import (
     get_lnurldevicepayment_by_p,
     update_lnurldevicepayment,
 )
-
+from fastapi.responses import JSONResponse
 
 
 def xor_decrypt(key, blob):
@@ -128,7 +128,6 @@ async def lnurl_params(
             for switch in device.switches:
                 if (
                     switch.pin == int(pin)
-                    and switch.amount == float(amount)
                     and switch.duration == int(duration)
                     and bool(switch.variable) == bool(variable)
                     and bool(switch.comment) == bool(comment)
@@ -137,8 +136,7 @@ async def lnurl_params(
                     continue
         if not check:
             return {"status": "ERROR", "reason": "Switch params wrong"}
-        if comment:
-            duration = duration + "-" + comment
+
         lnurldevicepayment = await create_lnurldevicepayment(
             deviceid=device.id,
             payload=duration,
@@ -151,7 +149,7 @@ async def lnurl_params(
         resp = {
             "tag": "payRequest",
             "callback": str(request.url_for(
-                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
+                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id, variable=variable
             )),
             "minSendable": price_msat,
             "maxSendable": price_msat,
@@ -161,6 +159,7 @@ async def lnurl_params(
             resp["commentAllowed"] = 1500
         if variable == True:
             resp["maxSendable"] = price_msat * 360
+        logger.debug(resp)
         return resp
 
     if len(p) % 4 > 0:
@@ -231,13 +230,16 @@ async def lnurl_params(
 
 
 @lnurldevice_ext.get(
-    "/api/v1/lnurl/cb/{paymentid}",
+    "/api/v1/lnurl/cb/{paymentid}/{variable}",
     status_code=HTTPStatus.OK,
     name="lnurldevice.lnurl_callback",
 )
 async def lnurl_callback(
     request: Request,
     paymentid: str,
+    variable: str,
+    amount: int = Query(None),
+    comment: str = Query(None),
     pr: str = Query(None),
     k1: str = Query(None),
 ):
@@ -285,24 +287,35 @@ async def lnurl_callback(
     if device.device == "switch":
         payment_hash, payment_request = await create_invoice(
             wallet_id=device.wallet,
-            amount=int(lnurldevicepayment.sats / 1000),
+            amount=int(amount / 1000),
             memo=f"{device.id} pin {lnurldevicepayment.pin} ({lnurldevicepayment.payload} ms)",
             unhashed_description=device.lnurlpay_metadata.encode(),
             extra={
                 "tag": "Switch",
                 "pin": str(lnurldevicepayment.pin),
-                "amount": str(lnurldevicepayment.payload),
+                "amount": amount,
+                "comment": comment,
+                "variable": variable,
                 "id": paymentid,
             },
         )
+        logger.debug(bolt11.decode(payment_request))
 
         lnurldevicepayment = await update_lnurldevicepayment(
             lnurldevicepayment_id=paymentid, payhash=payment_hash
         )
-        return {
-            "pr": payment_request,
-            "routes": [],
-        }
+        resp = JSONResponse(
+            {
+                "pr": payment_request,
+                "successAction": {
+                    "tag": "text",
+                    "description": f"{int(amount / 1000)}sats sent"
+                },
+                "routes": [],
+            }
+        )
+        
+        return resp
 
     payment_hash, payment_request = await create_invoice(
         wallet_id=device.wallet,

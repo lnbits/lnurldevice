@@ -6,7 +6,7 @@ from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
 from .crud import get_lnurldevicepayment, update_lnurldevicepayment
-
+from loguru import logger
 
 async def wait_for_paid_invoices():
     invoice_queue = asyncio.Queue()
@@ -30,6 +30,16 @@ async def on_invoice_paid(payment: Payment) -> None:
         lnurldevicepayment = await update_lnurldevicepayment(
             lnurldevicepayment_id=payment.extra["id"], payhash="used"
         )
+        comment = payment.extra["comment"]
+        payload = lnurldevicepayment.payload
+        if payload:
+            payload = int(payload) * int(lnurldevicepayment.sats)
+
+        if comment:
+            return await websocketUpdater(
+                lnurldevicepayment.deviceid,
+                f"{lnurldevicepayment.pin}-{payload}-{comment}",
+            )
         return await websocketUpdater(
             lnurldevicepayment.deviceid,
             f"{lnurldevicepayment.pin}-{lnurldevicepayment.payload}",
