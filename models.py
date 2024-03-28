@@ -7,6 +7,7 @@ from pydantic import BaseModel, Json
 
 
 class LnurldeviceSwitch(BaseModel):
+    description: str = ""
     amount: float = 0.0
     duration: int = 0
     pin: int = 0

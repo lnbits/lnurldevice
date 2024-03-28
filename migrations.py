@@ -212,3 +212,8 @@ async def m005_redux(db):
 
     # drop old table columns
     await db.execute(f"DROP TABLE {old_db}")
+
+async def m006_redux(db):
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN description TEXT;"
+    )
