@@ -215,5 +215,5 @@ async def m005_redux(db):
 
 async def m006_redux(db):
     await db.execute(
-        "ALTER TABLE lnurldevice.lnurldevices ADD COLUMN description TEXT;"
+        "ALTER TABLE lnurldevice.lnurldevice ADD COLUMN description TEXT;"
     )
