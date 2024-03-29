@@ -308,13 +308,13 @@ async def lnurl_callback(
             {
                 "pr": payment_request,
                 "successAction": {
-                    "tag": "text",
-                    "description": f"{int(amount / 1000)}sats sent"
+                    "tag": "message",
+                    "message": f"{int(amount / 1000)} sats sent"
                 },
                 "routes": [],
             }
         )
-        
+
         return resp
 
     payment_hash, payment_request = await create_invoice(
