@@ -1,7 +1,7 @@
 import asyncio
 
 from lnbits.core.models import Payment
-from lnbits.core.services import websocketUpdater
+from lnbits.core.services import websocket_updater
 from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
@@ -36,11 +36,11 @@ async def on_invoice_paid(payment: Payment) -> None:
             payload = int(payload) * int(lnurldevicepayment.sats)
 
         if comment:
-            return await websocketUpdater(
+            return await websocket_updater(
                 lnurldevicepayment.deviceid,
                 f"{lnurldevicepayment.pin}-{payload}-{comment}",
             )
-        return await websocketUpdater(
+        return await websocket_updater(
             lnurldevicepayment.deviceid,
             f"{lnurldevicepayment.pin}-{lnurldevicepayment.payload}",
         )
