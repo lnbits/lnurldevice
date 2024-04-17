@@ -285,6 +285,8 @@ async def lnurl_callback(
                 return {"status": "ERROR", "reason": "Payment failed, use a different wallet."}
             return {"status": "OK"}
     if device.device == "switch":
+        if not amount:
+            return {"status": "ERROR", "reason": "No amount"}
         payment_hash, payment_request = await create_invoice(
             wallet_id=device.wallet,
             amount=int(amount / 1000),
@@ -304,8 +306,7 @@ async def lnurl_callback(
         lnurldevicepayment = await update_lnurldevicepayment(
             lnurldevicepayment_id=paymentid, payhash=payment_hash
         )
-        resp = JSONResponse(
-            {
+        resp = {
                 "pr": payment_request,
                 "successAction": {
                     "tag": "text",
@@ -313,7 +314,7 @@ async def lnurl_callback(
                 },
                 "routes": [],
             }
-        )
+        logger.debug(resp)
         
         return resp
 
