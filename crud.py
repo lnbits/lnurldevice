@@ -105,15 +105,14 @@ async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurlde
     if device.switches:
         url = req.url_for("lnurldevice.lnurl_v2_params", device_id=device.id)
         for _switch in device.switches:
-            if not _switch.lnurl:
-                _switch.lnurl = lnurl_encode(
-                    str(url)
-                    + f"?pin={_switch.pin}"
-                    + f"&amount={_switch.amount}"
-                    + f"&duration={_switch.duration}"
-                    + f"&variable={_switch.variable}"
-                    + f"&comment={_switch.comment}"
-                )
+            _switch.lnurl = lnurl_encode(
+                str(url)
+                + f"?pin={_switch.pin}"
+                + f"&amount={_switch.amount}"
+                + f"&duration={_switch.duration}"
+                + f"&variable={_switch.variable}"
+                + f"&comment={_switch.comment}"
+            )
 
     return device
 
@@ -136,15 +135,14 @@ async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldev
         if device.switches:
             url = req.url_for("lnurldevice.lnurl_v2_params", device_id=device.id)
             for _switch in device.switches:
-                if not _switch.lnurl:
-                    _switch.lnurl = lnurl_encode(
-                        str(url)
-                        + f"?pin={_switch.pin}"
-                        + f"&amount={_switch.amount}"
-                        + f"&duration={_switch.duration}"
-                        + f"&variable={_switch.variable}"
-                        + f"&comment={_switch.comment}"
-                    )
+                _switch.lnurl = lnurl_encode(
+                    str(url)
+                    + f"?pin={_switch.pin}"
+                    + f"&amount={_switch.amount}"
+                    + f"&duration={_switch.duration}"
+                    + f"&variable={_switch.variable}"
+                    + f"&comment={_switch.comment}"
+                )
 
     return devices
 
