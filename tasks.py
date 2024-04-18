@@ -31,9 +31,10 @@ async def on_invoice_paid(payment: Payment) -> None:
             lnurldevicepayment_id=payment.extra["id"], payhash="used"
         )
         comment = payment.extra["comment"]
+        variable = payment.extra["variable"]
         payload = lnurldevicepayment.payload
-        if payload:
-            payload = int(payload) * int(lnurldevicepayment.sats)
+        if variable:
+            payload = int((int(payload) / int(lnurldevicepayment.sats)) * int(payment.extra["amount"]))
 
         if comment:
             return await websocket_updater(
@@ -42,5 +43,5 @@ async def on_invoice_paid(payment: Payment) -> None:
             )
         return await websocket_updater(
             lnurldevicepayment.deviceid,
-            f"{lnurldevicepayment.pin}-{lnurldevicepayment.payload}",
+            f"{lnurldevicepayment.pin}-{payload}",
         )

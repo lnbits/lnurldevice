@@ -159,7 +159,6 @@ async def lnurl_params(
             resp["commentAllowed"] = 1500
         if variable == True:
             resp["maxSendable"] = price_msat * 360
-        logger.debug(resp)
         return resp
 
     if len(p) % 4 > 0:
@@ -285,6 +284,9 @@ async def lnurl_callback(
                 return {"status": "ERROR", "reason": "Payment failed, use a different wallet."}
             return {"status": "OK"}
     if device.device == "switch":
+        if not amount:
+            return {"status": "ERROR", "reason": "No amount"}
+
         payment_hash, payment_request = await create_invoice(
             wallet_id=device.wallet,
             amount=int(amount / 1000),
@@ -293,27 +295,24 @@ async def lnurl_callback(
             extra={
                 "tag": "Switch",
                 "pin": str(lnurldevicepayment.pin),
-                "amount": amount,
+                "amount": str(int(amount)),
                 "comment": comment,
                 "variable": variable,
                 "id": paymentid,
             },
         )
-        logger.debug(bolt11.decode(payment_request))
 
         lnurldevicepayment = await update_lnurldevicepayment(
             lnurldevicepayment_id=paymentid, payhash=payment_hash
         )
-        resp = JSONResponse(
-            {
+        resp = {
                 "pr": payment_request,
                 "successAction": {
-                    "tag": "text",
-                    "description": f"{int(amount / 1000)}sats sent"
+                    "tag": "message",
+                    "message": f"{int(amount / 1000)}sats sent"
                 },
                 "routes": [],
             }
-        )
         
         return resp
 
