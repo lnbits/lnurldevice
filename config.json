@@ -1,7 +1,42 @@
 {
   "name": "LNURLDevice",
-  "short_description": "For offline LNURL devices",
+  "short_description": "Hardware focused LNURL helper",
   "tile": "/lnurldevice/static/image/lnurldevice.png",
-  "contributors": ["arcbtc"],
-  "min_lnbits_version": "0.12.6"
+  "min_lnbits_version": "0.12.6",
+  "images": [
+    {
+      "uri": "https://i.imgur.com/oS5VEEf.png"
+    },
+    {
+      "uri": "https://i.imgur.com/U8dgtSl.png"
+    },
+    {
+      "uri": "https://i.imgur.com/7Nz9PyU.png"
+    },
+    {
+      "uri": "https://i.imgur.com/uPxF8SO.png",
+      "link": "https://www.youtube.com/watch?v=98VYC99s770",
+      "tooltip": "demo video"
+    }
+  ],
+  "descrition_md": "https://raw.githubusercontent.com/lnbits/lnurldevice/main/description.md",
+  "terms_and_conditions_md": "https://raw.githubusercontent.com/lnbits/lnurldevice/main/toc.md",
+  "contributors": [
+    {
+      "name": "Ben Arc",
+      "uri": "mailto:ben@lnbits.com",
+      "role": "Developer"
+    },
+    {
+      "name": "BlackCoffee",
+      "uri": "https://github.com/blackcoffee",
+      "role": "Developer"
+    },
+    {
+      "name": "Vlad Stan",
+      "uri": "https://github.com/arcbtc",
+      "role": "Developer"
+    }
+  ],
+  "license": "MIT"
 }
