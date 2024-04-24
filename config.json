@@ -36,7 +36,7 @@
       "tooltip": "demo video"
     }
   ],
-  "descrition_md": "https://raw.githubusercontent.com/lnbits/lnurldevice/main/description.md",
+  "description_md": "https://raw.githubusercontent.com/lnbits/lnurldevice/main/description.md",
   "terms_and_conditions_md": "https://raw.githubusercontent.com/lnbits/lnurldevice/main/toc.md",
   "license": "MIT"
 }
