@@ -22,16 +22,16 @@
   ],
   "images": [
     {
-      "uri": "/lnurldevice/static/image/oS5VEEf.png"
+      "uri": "https://raw.githubusercontent.com/lnbits/lnurldevice/main/static/image/oS5VEEf.png"
     },
     {
-      "uri": "/lnurldevice/static/image/U8dgtSl.png"
+      "uri": "https://raw.githubusercontent.com/lnbits/lnurldevice/main/static/image/U8dgtSl.png"
     },
     {
-      "uri": "/lnurldevice/static/image/7Nz9PyU.png"
+      "uri": "https://raw.githubusercontent.com/lnbits/lnurldevice/main/static/image/7Nz9PyU.png"
     },
     {
-      "uri": "/lnurldevice/static/image/uPxF8SO.png",
+      "uri": "https://raw.githubusercontent.com/lnbits/lnurldevice/main/static/image/uPxF8SO.png",
       "link": "https://www.youtube.com/watch?v=98VYC99s770",
       "tooltip": "demo video"
     }
