@@ -32,7 +32,8 @@ async def on_invoice_paid(payment: Payment) -> None:
         )
         comment = payment.extra["comment"]
         variable = False
-        if payment.extra["variable"] == "true":
+        logger.debug(payment.extra["variable"])
+        if payment.extra["variable"] == "True":
             variable = True
         payload = lnurldevicepayment.payload
         if variable:
