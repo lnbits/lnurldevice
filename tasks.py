@@ -31,7 +31,9 @@ async def on_invoice_paid(payment: Payment) -> None:
             lnurldevicepayment_id=payment.extra["id"], payhash="used"
         )
         comment = payment.extra["comment"]
-        variable = payment.extra["variable"]
+        variable = False
+        if payment.extra["variable"] == "true":
+            variable = True
         payload = lnurldevicepayment.payload
         if variable:
             payload = int((int(payload) / int(lnurldevicepayment.sats)) * int(payment.extra["amount"]))
