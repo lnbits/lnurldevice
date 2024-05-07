@@ -199,7 +199,7 @@ async def lnurl_params(
         return {
             "tag": "withdrawRequest",
             "callback": str(request.url_for(
-                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
+                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id, variable=None
             )),
             "k1": p,
             "minWithdrawable": price_msat * 1000,
@@ -220,7 +220,7 @@ async def lnurl_params(
     return {
         "tag": "payRequest",
         "callback": str(request.url_for(
-            "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
+            "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id, variable=None
         )),
         "minSendable": price_msat * 1000,
         "maxSendable": price_msat * 1000,
