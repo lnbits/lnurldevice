@@ -94,7 +94,9 @@ async def lnurl_v2_params(
     variable: bool = Query(None),
     comment: bool = Query(None),
 ):
-    return await lnurl_params(request, device_id, p, atm, pin, amount, duration, variable, comment)
+    return await lnurl_params(
+        request, device_id, p, atm, pin, amount, duration, variable, comment
+    )
 
 
 async def lnurl_params(
@@ -116,11 +118,14 @@ async def lnurl_params(
         }
 
     if device.device == "switch":
-        price_msat = int((
-            await fiat_amount_as_satoshis(float(amount), device.currency)
-            if device.currency != "sat"
-            else float(amount)
-        ) * 1000)
+        price_msat = int(
+            (
+                await fiat_amount_as_satoshis(float(amount), device.currency)
+                if device.currency != "sat"
+                else float(amount)
+            )
+            * 1000
+        )
 
         # Check they're not trying to trick the switch!
         check = False
@@ -148,9 +153,13 @@ async def lnurl_params(
             return {"status": "ERROR", "reason": "Could not create payment."}
         resp = {
             "tag": "payRequest",
-            "callback": str(request.url_for(
-                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id, variable=variable
-            )),
+            "callback": str(
+                request.url_for(
+                    "lnurldevice.lnurl_callback",
+                    paymentid=lnurldevicepayment.id,
+                    variable=variable,
+                )
+            ),
             "minSendable": price_msat,
             "maxSendable": price_msat,
             "metadata": device.lnurlpay_metadata,
@@ -198,9 +207,11 @@ async def lnurl_params(
             return {"status": "ERROR", "reason": "Could not create ATM payment."}
         return {
             "tag": "withdrawRequest",
-            "callback": str(request.url_for(
-                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
-            )),
+            "callback": str(
+                request.url_for(
+                    "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
+                )
+            ),
             "k1": p,
             "minWithdrawable": price_msat * 1000,
             "maxWithdrawable": price_msat * 1000,
@@ -219,9 +230,11 @@ async def lnurl_params(
         return {"status": "ERROR", "reason": "Could not create payment."}
     return {
         "tag": "payRequest",
-        "callback": str(request.url_for(
-            "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
-        )),
+        "callback": str(
+            request.url_for(
+                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
+            )
+        ),
         "minSendable": price_msat * 1000,
         "maxSendable": price_msat * 1000,
         "metadata": device.lnurlpay_metadata,
@@ -281,7 +294,10 @@ async def lnurl_callback(
                     extra={"tag": "withdraw"},
                 )
             except Exception:
-                return {"status": "ERROR", "reason": "Payment failed, use a different wallet."}
+                return {
+                    "status": "ERROR",
+                    "reason": "Payment failed, use a different wallet.",
+                }
             return {"status": "OK"}
     if device.device == "switch":
         if not amount:
@@ -306,14 +322,14 @@ async def lnurl_callback(
             lnurldevicepayment_id=paymentid, payhash=payment_hash
         )
         resp = {
-                "pr": payment_request,
-                "successAction": {
-                    "tag": "message",
-                    "message": f"{int(amount / 1000)}sats sent"
-                },
-                "routes": [],
-            }
-        
+            "pr": payment_request,
+            "successAction": {
+                "tag": "message",
+                "message": f"{int(amount / 1000)}sats sent",
+            },
+            "routes": [],
+        }
+
         return resp
 
     payment_hash, payment_request = await create_invoice(
