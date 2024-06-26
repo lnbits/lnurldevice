@@ -242,14 +242,14 @@ async def lnurl_params(
 
 
 @lnurldevice_ext.get(
-    "/api/v1/lnurl/cb/{paymentid}/{variable}",
+    "/api/v1/lnurl/cb/{paymentid}",
     status_code=HTTPStatus.OK,
     name="lnurldevice.lnurl_callback",
 )
 async def lnurl_callback(
     request: Request,
     paymentid: str,
-    variable: str,
+    variable: str = Query(None),
     amount: int = Query(None),
     comment: str = Query(None),
     pr: str = Query(None),

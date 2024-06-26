@@ -8,10 +8,12 @@ from lnbits.core.crud import update_payment_status, get_wallet
 from lnbits.core.models import User
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import check_user_exists, check_user_extension_access
+from lnbits.lnurl import decode as lnurl_decode
 
 from . import lnurldevice_ext, lnurldevice_renderer
 from .crud import get_lnurldevice, get_lnurldevicepayment
-
+from urllib.parse import urlparse, parse_qs
+from loguru import logger
 templates = Jinja2Templates(directory="templates")
 
 
@@ -26,10 +28,16 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 @lnurldevice_ext.get("/atm/{lnurl}", response_class=HTMLResponse)
 async def index(request: Request, lnurl: str):
     url = str(lnurl_decode(lnurl))
-    url = urlparse(url).netloc  # Some shit to get teh id of the device
+    parsed_url = urlparse(url)
+    logger.debug(parsed_url.query)
+
     if not url:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Unabel to parse.")
-    device = await get_lnurldevice(url.id, request)
+
+    query_params = parse_qs(parsed_url.query)
+    lnurl_id = query_params.get('lnurl_id', [None])[0] 
+
+    device = await get_lnurldevice(lnurl_id, request)
     if not device:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="lnurldevice not found."
@@ -42,7 +50,7 @@ async def index(request: Request, lnurl: str):
         {
             "request": request,
             "lnurl": lnurl,
-            "device_id": url.id,
+            "device_id": lnurl_id,
             "hash": url.hash,
             "status": access.success or None,
         },
