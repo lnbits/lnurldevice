@@ -21,7 +21,7 @@ from .crud import (
     update_lnurldevicepayment,
 )
 from fastapi.responses import JSONResponse
-
+from .helpers import registerAtmPayment
 
 def xor_decrypt(key, blob):
     s = BytesIO(blob)
@@ -186,23 +186,9 @@ async def lnurl_params(
     ) * 1000
 
     if atm:
-        if device.device != "atm":
-            return {"status": "ERROR", "reason": "Not ATM device."}
-        price_msat = int(price_msat * (1 - (device.profit / 100)) / 1000)
-        lnurldevicepayment = await get_lnurldevicepayment_by_p(p)
-        if lnurldevicepayment:
-            if lnurldevicepayment.payload == lnurldevicepayment.payhash:
-                return {"status": "ERROR", "reason": "Payment already claimed"}
-        try:
-            lnurldevicepayment = await create_lnurldevicepayment(
-                deviceid=device.id,
-                payload=p,
-                sats=price_msat * 1000,
-                pin=pin,
-                payhash="payment_hash",
-            )
-        except Exception:
-            return {"status": "ERROR", "reason": "Could not create ATM payment."}
+        lnurldevicepayment, price_msat = await registerAtmPayment(device, p)
+        if lnurldevicepayment["status"] == "ERROR":
+            return lnurldevicepayment
         if not lnurldevicepayment:
             return {"status": "ERROR", "reason": "Could not create ATM payment."}
         return {

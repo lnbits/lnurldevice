@@ -21,7 +21,7 @@ from .crud import (
     update_lnurldevice,
 )
 from .models import CreateLnurldevice
-
+from .helpers import registerAtmPayment
 
 @lnurldevice_ext.get("/api/v1/currencies")
 async def api_list_currencies_available():
@@ -74,3 +74,34 @@ async def api_lnurldevice_delete(req: Request, lnurldevice_id: str):
         )
 
     await delete_lnurldevice(lnurldevice_id)
+
+
+#########ATM API#########
+
+###Lightning###
+
+@lnurldevice_ext.get(
+    "'/api/v1/ln/{lnurldevice_id}/{p}/{ln}"]
+)
+async def api_lnurldevice_atm_lnadress(req: Request, lnurldevice_id: str, p: str, ln: str):
+    # ln can be an invoice or lnaddress
+    lnurldevice = await get_lnurldevice(lnurldevice_id, req)
+    if not lnurldevice:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="lnurldevice does not exist"
+        )
+    lnurldevicepayment, price_msat = await registerAtmPayment(lnurldevice, p)
+    if lnurldevicepayment["status"] == "ERROR":
+        return lnurldevicepayment
+    try:
+        payment = await pay_invoice(
+            wallet_id=device.wallet,
+            payment_request=ln,
+            amount=price_msat,
+            extra={"tag": "lnurldevice", "id": lnurldevicepayment.id},
+        )
+    except Exception as exc:
+        return {"status": "ERROR", "reason": str(exc)}
+    return lnurldevicepayment.id
+
+###Boltz###

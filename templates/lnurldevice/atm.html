@@ -9,14 +9,16 @@
             <q-card-section class="q-pa-none">
 
                 <q-tabs v-model="tab" active-color="primary" align="justify">
-                    
+
                     <q-tab name="lnurl" label="lnurl" @update="val => tab = val.name"></q-tab>
 
                     <q-tab name="ln" label="lightnig" @update="val => tab = val.name"></q-tab>
 
-                    <q-tab :disable="boltz == 'None'" name="onchain" label="onchain" @update="val => tab = val.name"></q-tab>
+                    <q-tab :disable="boltz == 'None'" name="onchain" label="onchain"
+                        @update="val => tab = val.name"></q-tab>
 
-                    <q-tab :disable="boltz == 'None'" name="liquid" label="liquid" @update="val => tab = val.name"></q-tab>
+                    <q-tab :disable="boltz == 'None'" name="liquid" label="liquid"
+                        @update="val => tab = val.name"></q-tab>
                 </q-tabs>
                 <q-separator></q-separator>
 
@@ -32,7 +34,8 @@
                         </div>
 
                         <div class="row q-mt-lg q-gutter-sm">
-                            <q-btn outline color="grey" @click="copyText(qr_value, 'LNURL copied to clipboard!')">Copy LNURL </q-btn>
+                            <q-btn outline color="grey" @click="copyText(qr_value, 'LNURL copied to clipboard!')">Copy
+                                LNURL </q-btn>
                         </div>
                     </q-tab-panel>
                     <q-tab-panel name="ln">
@@ -46,7 +49,18 @@
                         </div>
 
                         <div class="row q-mt-lg q-gutter-sm">
-                            <q-btn outline color="grey" @click="copyText(qr_value, 'Invoice copied to clipboard!')">Copy LNURL </q-btn>
+                            <q-btn outline color="grey" @click="copyText(qr_value, 'Invoice copied to clipboard!')">Copy
+                                LNURL </q-btn>
+                        </div>
+                    </q-tab-panel>
+
+                    <q-tab-panel name="lnaddress">
+                        <div class="text-h6">LNAddress</div>
+                        <div class="q-pa-md">
+                            <form @submit.prevent="sendLNaddress">
+                                <q-input filled v-model="lnaddress" label="Enter your LNAdress" />
+                                <q-btn type="submit" color="primary" label="Submit" class="q-mt-md" />
+                            </form>
                         </div>
                     </q-tab-panel>
 
@@ -61,7 +75,8 @@
                         </div>
 
                         <div class="row q-mt-lg q-gutter-sm">
-                            <q-btn outline color="grey" @click="copyText(qr_value, 'Address copied to clipboard!')">Copy LNURL </q-btn>
+                            <q-btn outline color="grey" @click="copyText(qr_value, 'Address copied to clipboard!')">Copy
+                                LNURL </q-btn>
                         </div>
                     </q-tab-panel>
 
@@ -76,7 +91,8 @@
                         </div>
 
                         <div class="row q-mt-lg q-gutter-sm">
-                            <q-btn outline color="grey" @click="copyText(qr_value, 'Address copied to clipboard!')">Copy LNURL </q-btn>
+                            <q-btn outline color="grey" @click="copyText(qr_value, 'Address copied to clipboard!')">Copy
+                                LNURL </q-btn>
                         </div>
                     </q-tab-panel>
                 </q-tab-panels>
@@ -115,17 +131,37 @@
                 boltz: '{{boltz}}',
                 p: '{{p}}',
                 tab: 'lnurl',
-                payment_options: ['lnurl', 'ln', 'onchain', 'liquid', 'lnaddress'],
+                lnaddress: '',
+                payment_options: ['lnurl', 'ln', 'lnaddress', 'onchain', 'liquid'],
             }
         },
         methods: {
-            launchFunction: function() {
-            // Your function logic here
-            console.log('launchFunction called because tab is lightning');
-        }
+            launchFunction: function () {
+                // Your function logic here
+                console.log('launchFunction called because tab is lightning');
+            },
+            sendLNaddress: function () {
+                LNbits.api
+                    .request(
+                        'GET',
+                        '/lnurldevice/api/v1/lnaddress/' + this.device_id + '/' + this.p + '/' + this.lnaddress,
+                        ''
+                    )
+                    .then(function (response) {
+                        if (response.data) {
+                            $q.notify({
+                                message: 'LNAddress sent, payment should be with you shortly',
+                                color: 'green'
+                            })
+                        }
+                    })
+                    .catch(function (error) {
+                        LNbits.utils.notifyApiError(error)
+                    })
+            }
         },
         created: function () {
-          console.log(this.boltz)
+            console.log(this.boltz)
         },
         watch: {
             tab: function (newVal, oldVal) {
@@ -136,6 +172,6 @@
         }
 
 
-        })
+    })
 </script>
 {% endblock %}
