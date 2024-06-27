@@ -1,5 +1,5 @@
 from http import HTTPStatus
-
+import base64
 from fastapi import Depends, HTTPException, Query, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
@@ -11,7 +11,8 @@ from lnbits.decorators import check_user_exists, check_user_extension_access
 from lnbits.lnurl import decode as lnurl_decode
 
 from . import lnurldevice_ext, lnurldevice_renderer
-from .crud import get_lnurldevice, get_lnurldevicepayment
+from .crud import get_lnurldevice, get_lnurldevicepayment, get_lnurldevicepayment_by_p
+from .lnurl import xor_decrypt
 from urllib.parse import urlparse, parse_qs
 from loguru import logger
 templates = Jinja2Templates(directory="templates")
@@ -28,21 +29,41 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 @lnurldevice_ext.get("/atm/{lnurl}", response_class=HTMLResponse)
 async def index(request: Request, lnurl: str):
     url = str(lnurl_decode(lnurl))
-    parsed_url = urlparse(url)
-    logger.debug(parsed_url.query)
-
     if not url:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Unabel to parse.")
-
-    query_params = parse_qs(parsed_url.query)
-    lnurl_id = query_params.get('lnurl_id', [None])[0] 
-
-    device = await get_lnurldevice(lnurl_id, request)
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Unable to decode lnurl.")
+    logger.debug("poo")
+    parsed_url = urlparse(url)
+    path_segments = parsed_url.path.split('/')
+    device = await get_lnurldevice((path_segments[-1]), request)
     if not device:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="lnurldevice not found."
-        )
-    wallet = get_wallet(device.wallet)
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Unable to find device.")
+    logger.debug("poo")
+    query_params = parse_qs(parsed_url.query)
+    p = query_params.get('p', [None])[0] 
+    if p is None:
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Missing 'p' parameter.")
+    
+    logger.debug(f"Query parameter 'p': {p}")
+    if len(p) % 4 > 0:  # Adjust for base64 padding if necessary
+        p += "=" * (4 - (len(p) % 4))
+
+    data = base64.urlsafe_b64decode(p)
+    try:
+        decrypted = xor_decrypt(device.key.encode(), data)
+        logger.debug(decrypted)
+    except Exception as exc:
+        logger.debug(str(exc))
+        return {"status": "ERROR", "reason": str(exc)}
+    
+    wallet = await get_wallet(device.wallet)
+    if not wallet:
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found.")
+    
+    lnurldevicepayment = await get_lnurldevicepayment_by_p(p)
+    if lnurldevicepayment:
+        if lnurldevicepayment.payload == lnurldevicepayment.payhash:
+            return {"status": "ERROR", "reason": "Payment already claimed"}
+
     access = await check_user_extension_access(wallet.user, "boltz")
 
     return lnurldevice_renderer().TemplateResponse(
@@ -50,11 +71,15 @@ async def index(request: Request, lnurl: str):
         {
             "request": request,
             "lnurl": lnurl,
-            "device_id": lnurl_id,
-            "hash": url.hash,
-            "status": access.success or None,
+            "device_id": device.id,
+            "boltz": access.success or None,
+            "p": p,
         },
     )
+
+
+
+
 
 
 @lnurldevice_ext.get(

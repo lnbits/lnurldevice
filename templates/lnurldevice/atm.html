@@ -9,49 +9,74 @@
             <q-card-section class="q-pa-none">
 
                 <q-tabs v-model="tab" active-color="primary" align="justify">
-                    <q-tab name="ln" :label="lightning" @update="val => tab = val.name"></q-tab>
+                    
+                    <q-tab name="lnurl" label="lnurl" @update="val => tab = val.name"></q-tab>
 
-                    <q-tab :disable="!status" name="onchain" :label="onchain" @update="val => tab = val.name"></q-tab>
+                    <q-tab name="ln" label="lightnig" @update="val => tab = val.name"></q-tab>
 
-                    <q-tab :disable="!status" name="liquid" :label="liquid" @update="val => tab = val.name"></q-tab>
+                    <q-tab :disable="boltz == 'None'" name="onchain" label="onchain" @update="val => tab = val.name"></q-tab>
+
+                    <q-tab :disable="boltz == 'None'" name="liquid" label="liquid" @update="val => tab = val.name"></q-tab>
                 </q-tabs>
                 <q-separator></q-separator>
 
                 <q-tab-panels v-model="tab">
-                    <q-tab-panel name="ln">
-                        <div class="text-h6">Lightning Withdraw</div>
+                    <q-tab-panel name="lnurl">
+                        <div class="text-h6">LNURL Withdraw</div>
                         <div class="text-center">
-                            <a class="text-secondary" href="lightning:{{ lnurl }}">
+                            <a class="text-secondary" :href="'lightning:' + qr_value">
                                 <q-responsive :ratio="1" class="q-mx-md">
-                                    <qrcode :value="qrValue" :options="{width: 800}" class="rounded-borders"></qrcode>
+                                    <qrcode :value="qr_value" :options="{width: 800}" class="rounded-borders"></qrcode>
                                 </q-responsive>
                             </a>
                         </div>
 
                         <div class="row q-mt-lg q-gutter-sm">
-                            <q-btn outline color="grey" @click="copyText(qrValue)">Copy LNURL </q-btn>
+                            <q-btn outline color="grey" @click="copyText(qr_value, 'LNURL copied to clipboard!')">Copy LNURL </q-btn>
+                        </div>
+                    </q-tab-panel>
+                    <q-tab-panel name="ln">
+                        <div class="text-h6">Lightning Withdraw</div>
+                        <div class="text-center">
+                            <a class="text-secondary" :href="'lightning:' + qr_value">
+                                <q-responsive :ratio="1" class="q-mx-md">
+                                    <qrcode :value="qr_value" :options="{width: 800}" class="rounded-borders"></qrcode>
+                                </q-responsive>
+                            </a>
+                        </div>
+
+                        <div class="row q-mt-lg q-gutter-sm">
+                            <q-btn outline color="grey" @click="copyText(qr_value, 'Invoice copied to clipboard!')">Copy LNURL </q-btn>
                         </div>
                     </q-tab-panel>
 
-                    <q-tab-panel name="onchain" :disable="!status">
+                    <q-tab-panel name="onchain" :disable="boltz == 'None'">
                         <div class="text-h6">Onchain Withdraw</div>
                         <div class="text-center">
-                            <a class="text-secondary" href="lightning:{{ lnurl }}">
+                            <a class="text-secondary" :href="'lightning:' + qr_value">
                                 <q-responsive :ratio="1" class="q-mx-md">
-                                    <qrcode :value="qrValue" :options="{width: 800}" class="rounded-borders"></qrcode>
+                                    <qrcode :value="qr_value" :options="{width: 800}" class="rounded-borders"></qrcode>
                                 </q-responsive>
                             </a>
                         </div>
+
+                        <div class="row q-mt-lg q-gutter-sm">
+                            <q-btn outline color="grey" @click="copyText(qr_value, 'Address copied to clipboard!')">Copy LNURL </q-btn>
+                        </div>
                     </q-tab-panel>
 
-                    <q-tab-panel name="liquid" :disable="!status">
+                    <q-tab-panel name="liquid" :disable="boltz == 'None'">
                         <div class="text-h6">Liquid Withdraw</div>
                         <div class="text-center">
-                            <a class="text-secondary" href="lightning:{{ lnurl }}">
+                            <a class="text-secondary" :href="'lightning:' + qr_value">
                                 <q-responsive :ratio="1" class="q-mx-md">
-                                    <qrcode :value="qrValue" :options="{width: 800}" class="rounded-borders"></qrcode>
+                                    <qrcode :value="qr_value" :options="{width: 800}" class="rounded-borders"></qrcode>
                                 </q-responsive>
                             </a>
+                        </div>
+
+                        <div class="row q-mt-lg q-gutter-sm">
+                            <q-btn outline color="grey" @click="copyText(qr_value, 'Address copied to clipboard!')">Copy LNURL </q-btn>
                         </div>
                     </q-tab-panel>
                 </q-tab-panels>
@@ -81,20 +106,36 @@
     new Vue({
         el: '#vue',
         mixins: [windowMixin],
+        delimiters: ['${', '}'],
         data: function () {
             return {
                 device_id: '{{device_id}}',
                 qr_value: '{{lnurl}}',
                 lnurl: '{{lnurl}}',
-                hash: '{{hash}}',
-                status: '{{success}}',
-                payment_selection: 'ln',
-                payment_options: ['ln', 'onchain', 'liquid']
+                boltz: '{{boltz}}',
+                p: '{{p}}',
+                tab: 'lnurl',
+                payment_options: ['lnurl', 'ln', 'onchain', 'liquid', 'lnaddress'],
             }
         },
         methods: {
-            select
+            launchFunction: function() {
+            // Your function logic here
+            console.log('launchFunction called because tab is lightning');
         }
-    })
+        },
+        created: function () {
+          console.log(this.boltz)
+        },
+        watch: {
+            tab: function (newVal, oldVal) {
+                if (newVal === 'ln') {
+                    this.launchFunction()
+                }
+            }
+        }
+
+
+        })
 </script>
 {% endblock %}
