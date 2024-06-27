@@ -84,15 +84,23 @@ async def api_lnurldevice_delete(req: Request, lnurldevice_id: str):
     "'/api/v1/ln/{lnurldevice_id}/{p}/{ln}"]
 )
 async def api_lnurldevice_atm_lnadress(req: Request, lnurldevice_id: str, p: str, ln: str):
-    # ln can be an invoice or lnaddress
+
+    # Check device exists
+
     lnurldevice = await get_lnurldevice(lnurldevice_id, req)
     if not lnurldevice:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="lnurldevice does not exist"
         )
+    
+    # Register payment to avoid double pull
+
     lnurldevicepayment, price_msat = await registerAtmPayment(lnurldevice, p)
     if lnurldevicepayment["status"] == "ERROR":
         return lnurldevicepayment
+    
+    # Make payment 
+    
     try:
         payment = await pay_invoice(
             wallet_id=device.wallet,
@@ -105,3 +113,40 @@ async def api_lnurldevice_atm_lnadress(req: Request, lnurldevice_id: str, p: str
     return lnurldevicepayment.id
 
 ###Boltz###
+
+@lnurldevice_ext.get(
+    "'/api/v1/boltz/{lnurldevice_id}/{p}/{onchain_liquid}/{address}"]
+)
+async def api_lnurldevice_atm_lnadress(req: Request, lnurldevice_id: str, p: str, onchain_liquid: str, address: str):
+
+    # Check device exists
+
+    lnurldevice = await get_lnurldevice(lnurldevice_id, req)
+    if not lnurldevice:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="lnurldevice does not exist"
+        )
+
+    # Register payment to avoid double pull
+
+    lnurldevicepayment, price_msat = await registerAtmPayment(lnurldevice, p)
+    if lnurldevicepayment["status"] == "ERROR":
+        return lnurldevicepayment
+
+    # One less check Bolz is activated
+
+    access = await check_user_extension_access(wallet.user, "boltz")
+    if not access.success:
+        return {"status": "ERROR", "reason": "Boltz not enabled"}
+    data = {
+        "wallet": lnurldevice.wallet,
+        "asset": onchain_liquid,
+        "amount": price_msat,
+        "instant_settlement": True,
+        "onchain_address": address
+    }
+    try:
+        swap = await api_submarineswap_create(data)
+        return swap.pop("wallet", None)
+    except Exception as exc:
+        return {"status": "ERROR", "reason": str(exc)}
