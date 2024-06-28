@@ -227,3 +227,12 @@ async def get_lnurlpayload(
         (lnurldevicepayment_payload,),
     )
     return LnurldevicePayment(**row) if row else None
+
+async def get_recent_lnurldevicepayment(
+    p: str,
+) -> Optional[LnurldevicePayment]:
+    row = await db.fetchone(
+        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE payload = ? ORDER BY timestamp DESC LIMIT 1",
+        (p,),
+    )
+    return LnurldevicePayment(**row) if row else None

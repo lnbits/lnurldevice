@@ -2,31 +2,80 @@
 
 <div class="row">
   <div class="" id="vue">
-    {% for page in link %}
+
     <page size="A4" id="pdfprint">
-      {% for one in page %}
+     
       <div class="wrapper">
-        <img src="{{custom_url}}" alt="..." />
+        <center style="padding-top:30px">
+          <h3>ATM receipt for: "{{devicename}}"</h3>
         <span>{{ amt }} sats</span>
-        <div class="lnurlw">
-          <qrcode
-            :value="theurl + '/lnurldevice/print/{{lnurldevicepayment.id}}'"
-            :options="{width: 95, margin: 1}"
-          ></qrcode>
+
+        <table>
+          <tr>
+            <td><b>Payment ID</b></td>
+            <td>{{id}}</td>
+          </tr>
+
+          <tr>
+            <td><b>Amount</b></td>
+            <td>{{sats/1000}} Sats</td>
+          </tr>
+          <tr>
+            <td><b>Device</b></td>
+            <td>{{devicename}} ({{deviceid}})</td>
+          </tr>
+          <tr>
+            <td><b>Withdraw attempt</b></td>
+            <td>${newtimestamp}</td>
+          </tr>
+          <tr>
+            <td><b>Claimed</b></td>
+            <td>{{ "False" if payhash == "payment_hash" else "True" }}</td>
+          </tr>
+        </table>
+        <div class="row" style="width:70%; padding-top:30px">
+          <div class="col">
+            (scan for this page)
+            <div >
+              <qrcode
+                :value="theurl + '/lnurldevice/print/{{id}}'"
+                :options="{width: 200, margin: 1}"
+              ></qrcode>
+            </div>
+          </div>
+          <div class="col">
+            (scan for claim page)
+            <div >
+              <qrcode
+                :value="theurl + '/lnurldevice/atm/{{lnurl}}'"
+                :options="{width: 200, margin: 1}"
+              ></qrcode>
+            </div>
+          </div>
         </div>
+        
       </div>
-      {% endfor %}
+    </center>
+     
     </page>
-    {% endfor %}
+ 
   </div>
 </div>
 {% endblock %} {% block styles %}
+
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400');
   body {
     background: rgb(204, 204, 204);
   }
+  th, td {
+  padding-top: 10px;
+  padding-bottom: 20px;
+  padding-left: 30px;
+  padding-right: 40px;
+}
   page {
+    color: black;
     background: white;
     display: block;
     margin: 0 auto;
@@ -41,7 +90,7 @@
     position: relative;
     margin-bottom: 1rem;
     padding: 1rem;
-    width: fit-content;
+    width: 100%;
   }
   .wrapper span {
     display: block;
@@ -100,32 +149,19 @@
     data: function () {
       return {
         theurl: location.protocol + '//' + location.host,
-        lnurldevicepayment: "{{lnurldevicepayment}}",
         printDialog: {
           show: true,
           data: null
-        }
+        },
+        timestamp: "{{timestamp}}",
+        newtimestamp: ""
       }
     },
-    created: function () {
-      console.log("this.lnurldevicepayment")
-      this.lnurldevicepayment = this.convertToJSON(this.lnurldevicepayment)
-      console.log(this.lnurldevicepayment.id)
-      this.printDialog.data = this.lnurldevicepayment
-    },
-    methods: {
-      convertToJSON(str) {
-        let correctedStr = str.replace(/&#39;/g, "'")
-        correctedStr = correctedStr.replace(/'([^']+)':/g, "\"$1\":").replace(/: '([^']+)'/g, ": \"$1\"")
-        try {
-          const jsonObj = JSON.parse(correctedStr)
-          return jsonObj
-        } catch (error) {
-          console.error("Error parsing JSON:", error)
-          return null
-        }
-      }
+    created() {
+      this.newtimestamp = new Date(this.timestamp * 1000).toUTCString()
+      console.log(this.newtimestamp)
     }
+    
   })
 </script>
 {% endblock %}
