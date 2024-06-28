@@ -1,9 +1,6 @@
 import base64
-import hmac
 from http import HTTPStatus
-from io import BytesIO
 
-from embit import compact
 from fastapi import HTTPException, Query, Request
 
 from lnbits import bolt11
@@ -17,49 +14,10 @@ from .crud import (
     create_lnurldevicepayment,
     get_lnurldevice,
     get_lnurldevicepayment,
-    get_lnurldevicepayment_by_p,
     update_lnurldevicepayment,
 )
 from fastapi.responses import JSONResponse
-from .helpers import registerAtmPayment
-
-def xor_decrypt(key, blob):
-    s = BytesIO(blob)
-    variant = s.read(1)[0]
-    if variant != 1:
-        raise RuntimeError("Not implemented")
-    # reading nonce
-    l = s.read(1)[0]
-    nonce = s.read(l)
-    if len(nonce) != l:
-        raise RuntimeError("Missing nonce bytes")
-    if l < 8:
-        raise RuntimeError("Nonce is too short")
-
-    # reading payload
-    l = s.read(1)[0]
-    payload = s.read(l)
-    if len(payload) > 32:
-        raise RuntimeError("Payload is too long for this encryption method")
-    if len(payload) != l:
-        raise RuntimeError("Missing payload bytes")
-    hmacval = s.read()
-    expected = hmac.new(
-        key, b"Data:" + blob[: -len(hmacval)], digestmod="sha256"
-    ).digest()
-    if len(hmacval) < 8:
-        raise RuntimeError("HMAC is too short")
-    if hmacval != expected[: len(hmacval)]:
-        raise RuntimeError("HMAC is invalid")
-    secret = hmac.new(key, b"Round secret:" + nonce, digestmod="sha256").digest()
-    payload = bytearray(payload)
-    for i in range(len(payload)):
-        payload[i] = payload[i] ^ secret[i]
-    s = BytesIO(payload)
-    pin = compact.read_from(s)
-    amount_in_cent = compact.read_from(s)
-    return str(pin), amount_in_cent
-
+from .helpers import registerAtmPayment, xor_decrypt
 
 @lnurldevice_ext.get(
     "/api/v1/lnurl/{device_id}",

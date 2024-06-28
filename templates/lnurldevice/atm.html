@@ -4,7 +4,10 @@
 
 {% extends "public.html" %} {% block page %}
 <div class="row q-col-gutter-md justify-center">
+    
     <div class="col-12 col-sm-6 col-md-5 col-lg-4">
+        <h1 class="text-h4 q-mb-xs">You can withdraw: </h1>
+        <h3 class="text-h5">${amount} SATS/BTC  <br /> ${(amount / 100000000).toFixed(8)} BTC</h3>
         <q-card class="q-pa-lg">
             <q-card-section class="q-pa-none">
 
@@ -39,29 +42,17 @@
                         </div>
                     </q-tab-panel>
                     <q-tab-panel name="ln">
-                        <div class="text-h6">Lightning Withdraw</div>
-                        <div class="text-center">
-                            <a class="text-secondary" :href="'lightning:' + qr_value">
-                                <q-responsive :ratio="1" class="q-mx-md">
-                                    <qrcode :value="qr_value" :options="{width: 800}" class="rounded-borders"></qrcode>
-                                </q-responsive>
-                            </a>
-                        </div>
-
-                        <div class="row q-mt-lg q-gutter-sm">
-                            <q-btn outline color="grey" @click="copyText(qr_value, 'Invoice copied to clipboard!')">Copy
-                                LNURL </q-btn>
-                        </div>
-                    </q-tab-panel>
-
-                    <q-tab-panel name="lnaddress">
-                        <div class="text-h6">LNAddress</div>
-                        <div class="q-pa-md">
-                            <form @submit.prevent="sendLNaddress">
-                                <q-input filled v-model="lnaddress" label="Enter your LNAdress" />
-                                <q-btn type="submit" color="primary" label="Submit" class="q-mt-md" />
-                            </form>
-                        </div>
+                        <div class="text-h6">Lightning/LNaddress/LNURL-pay Withdraw</div>
+                        <q-form @submit="sendLNaddress" class="q-gutter-md">
+                            <q-input filled dense v-model.trim="ln" type="textarea"
+                                label="Paste an invoice, LNaddress or LNURL-pay" ref="textArea">
+                            </q-input>
+                            <div class="row q-mt-lg">
+                                <q-btn unelevated color="primary" :disable="ln == ''" type="submit"
+                                    :label="$t('read')"></q-btn>
+                                <q-btn v-close-popup flat color="grey" class="q-ml-auto" :label="$t('cancel')"></q-btn>
+                            </div>
+                        </q-form>
                     </q-tab-panel>
 
                     <q-tab-panel name="onchain" :disable="boltz == 'None'">
@@ -106,8 +97,11 @@
             <q-card-section>
                 <h6 class="text-subtitle1 q-mb-sm q-mt-none">ATM Withdraw</h6>
                 <p class="q-my-none">
-                    Boltz powered withdrawals for onchain and liquid.
-            </q-card-section>
+                    This ATm page allows you to withdraw funds either into a lightning wallet or (if the atm provider has enabled), liquid and onchain.
+                    (powered by Lnbits)
+                    Once the withdraw has been initiated, the funds will be sent to the address or invoice you provided.
+                    We reccomend you make abackup of your reciept as this can be used to track the status of your withdraw.
+                </q-card-section>
             <q-card-section class="q-pa-none">
                 <q-separator></q-separator>
                 <q-list> </q-list>
@@ -115,6 +109,7 @@
         </q-card>
     </div>
 </div>
+
 {% endblock %} {% block scripts %}
 <script>
     Vue.component(VueQrcode.name, VueQrcode)
@@ -129,10 +124,11 @@
                 qr_value: '{{lnurl}}',
                 lnurl: '{{lnurl}}',
                 boltz: '{{boltz}}',
+                amount: '{{amount}}',
                 p: '{{p}}',
                 tab: 'lnurl',
-                lnaddress: '',
-                payment_options: ['lnurl', 'ln', 'lnaddress', 'onchain', 'liquid'],
+                ln: '',
+                payment_options: ['lnurl', 'ln', 'onchain', 'liquid']
             }
         },
         methods: {
@@ -144,7 +140,7 @@
                 LNbits.api
                     .request(
                         'GET',
-                        '/lnurldevice/api/v1/lnaddress/' + this.device_id + '/' + this.p + '/' + this.lnaddress,
+                        '/lnurldevice/api/v1/ln/' + this.device_id + '/' + this.p + '/' + this.ln,
                         ''
                     )
                     .then(function (response) {
@@ -158,8 +154,97 @@
                     .catch(function (error) {
                         LNbits.utils.notifyApiError(error)
                     })
-            }
+            },
+            closeParseDialog: function () {
+                setTimeout(() => {
+                    clearInterval(this.parse.paymentChecker)
+                }, 10000)
+            },
+            focusInput(el) {
+                this.$nextTick(() => this.$refs[el].focus())
+            },
+            msatoshiFormat: function (value) {
+                return LNbits.utils.formatSat(value / 1000)
+            },
+            showParseDialog: function () {
+                this.parse.show = true
+                this.parse.invoice = null
+                this.parse.copy.show =
+                    window.isSecureContext && navigator.clipboard?.readText !== undefined
+                this.parse.data.request = ''
+                this.parse.data.comment = ''
+                this.parse.data.paymentChecker = null
+                this.focusInput('textArea')
+            },
+            decodeQR: function (res) {
+                this.parse.data.request = res
+                this.decodeRequest()
+            },
+            decodeRequest: function () {
+                this.parse.show = true
+                let req = this.parse.data.request.toLowerCase()
+                if (this.parse.data.request.toLowerCase().startsWith('lightning:')) {
+                    this.parse.data.request = this.parse.data.request.slice(10)
+                } else if (this.parse.data.request.toLowerCase().startsWith('lnurl:')) {
+                    this.parse.data.request = this.parse.data.request.slice(6)
+                } else if (req.indexOf('lightning=lnurl1') !== -1) {
+                    this.parse.data.request = this.parse.data.request
+                        .split('lightning=')[1]
+                        .split('&')[0]
+                }
+                // BIP-21 support
+                if (this.parse.data.request.toLowerCase().includes('lightning')) {
+                    this.parse.data.request = this.parse.data.request.split('lightning=')[1]
+
+                    // fail safe to check there's nothing after the lightning= part
+                    if (this.parse.data.request.includes('&')) {
+                        this.parse.data.request = this.parse.data.request.split('&')[0]
+                    }
+                }
+
+                let invoice
+                try {
+                    invoice = decode(this.parse.data.request)
+                } catch (error) {
+                    this.$q.notify({
+                        timeout: 3000,
+                        type: 'warning',
+                        message: error + '.',
+                        caption: '400 BAD REQUEST'
+                    })
+                    this.parse.show = false
+                    return
+                }
+
+                let cleanInvoice = {
+                    msat: invoice.human_readable_part.amount,
+                    sat: invoice.human_readable_part.amount / 1000,
+                    fsat: LNbits.utils.formatSat(invoice.human_readable_part.amount / 1000)
+                }
+
+                _.each(invoice.data.tags, tag => {
+                    if (_.isObject(tag) && _.has(tag, 'description')) {
+                        if (tag.description === 'payment_hash') {
+                            cleanInvoice.hash = tag.value
+                        } else if (tag.description === 'description') {
+                            cleanInvoice.description = tag.value
+                        } else if (tag.description === 'expiry') {
+                            var expireDate = new Date(
+                                (invoice.data.time_stamp + tag.value) * 1000
+                            )
+                            cleanInvoice.expireDate = Quasar.utils.date.formatDate(
+                                expireDate,
+                                'YYYY-MM-DDTHH:mm:ss.SSSZ'
+                            )
+                            cleanInvoice.expired = false // TODO
+                        }
+                    }
+                })
+
+                this.parse.invoice = Object.freeze(cleanInvoice)
+            },
         },
+
         created: function () {
             console.log(this.boltz)
         },

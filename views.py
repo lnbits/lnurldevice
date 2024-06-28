@@ -15,6 +15,10 @@ from .crud import get_lnurldevice, get_lnurldevicepayment, get_lnurldevicepaymen
 from .lnurl import xor_decrypt
 from urllib.parse import urlparse, parse_qs
 from loguru import logger
+from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
+from .helpers import checkAtmPaymentExists
+import json
+
 templates = Jinja2Templates(directory="templates")
 
 
@@ -30,20 +34,25 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
 async def index(request: Request, lnurl: str):
     url = str(lnurl_decode(lnurl))
     if not url:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Unable to decode lnurl.")
-    logger.debug("poo")
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Unable to decode lnurl."
+        )
+
     parsed_url = urlparse(url)
-    path_segments = parsed_url.path.split('/')
+    path_segments = parsed_url.path.split("/")
     device = await get_lnurldevice((path_segments[-1]), request)
     if not device:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Unable to find device.")
-    logger.debug("poo")
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Unable to find device."
+        )
+
     query_params = parse_qs(parsed_url.query)
-    p = query_params.get('p', [None])[0] 
+    p = query_params.get("p", [None])[0]
     if p is None:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Missing 'p' parameter.")
-    
-    logger.debug(f"Query parameter 'p': {p}")
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Missing 'p' parameter."
+        )
+
     if len(p) % 4 > 0:  # Adjust for base64 padding if necessary
         p += "=" * (4 - (len(p) % 4))
 
@@ -52,13 +61,14 @@ async def index(request: Request, lnurl: str):
         decrypted = xor_decrypt(device.key.encode(), data)
         logger.debug(decrypted)
     except Exception as exc:
-        logger.debug(str(exc))
         return {"status": "ERROR", "reason": str(exc)}
-    
+
     wallet = await get_wallet(device.wallet)
     if not wallet:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found.")
-    
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found."
+        )
+
     lnurldevicepayment = await get_lnurldevicepayment_by_p(p)
     if lnurldevicepayment:
         if lnurldevicepayment.payload == lnurldevicepayment.payhash:
@@ -66,20 +76,28 @@ async def index(request: Request, lnurl: str):
 
     access = await check_user_extension_access(wallet.user, "boltz")
 
+    data = base64.urlsafe_b64decode(p)
+    try:
+        pin, amount_in_cent = xor_decrypt(device.key.encode(), data)
+    except Exception as exc:
+        return {"status": "ERROR", "reason": str(exc)}
+    price_msat = (
+        await fiat_amount_as_satoshis(float(amount_in_cent) / 100, device.currency)
+        if device.currency != "sat"
+        else amount_in_cent
+    ) * 1000
+
     return lnurldevice_renderer().TemplateResponse(
         "lnurldevice/atm.html",
         {
             "request": request,
             "lnurl": lnurl,
+            "amount": int(price_msat / 1000),
             "device_id": device.id,
             "boltz": access.success or None,
             "p": p,
         },
     )
-
-
-
-
 
 
 @lnurldevice_ext.get(
@@ -107,4 +125,28 @@ async def displaypin(request: Request, paymentid: str):
     return lnurldevice_renderer().TemplateResponse(
         "lnurldevice/error.html",
         {"request": request, "pin": "filler", "not_paid": True},
+    )
+
+
+@lnurldevice_ext.get("/print/{payment_id}", response_class=HTMLResponse)
+async def print_receipt(request: Request, payment_id):
+    lnurldevicepayment = await get_lnurldevicepayment(payment_id)
+    logger.debug(lnurldevicepayment.dict())
+    if not lnurldevicepayment:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Payment link does not exist."
+        )
+    return lnurldevice_renderer().TemplateResponse(
+        "lnurldevice/atm_receipt.html",
+        {
+            "request": request,
+            "lnurldevicepayment": {
+                "id": lnurldevicepayment.id,
+                "deviceid": lnurldevicepayment.deviceid,
+                "payhash": lnurldevicepayment.payhash,
+                "payload": lnurldevicepayment.payload,
+                "sats": lnurldevicepayment.sats,
+                "timestamp": lnurldevicepayment.timestamp,
+            },
+        },
     )
