@@ -151,11 +151,9 @@ async def lnurl_params(
             return {"status": "ERROR", "reason": "Could not create ATM payment."}
         return {
             "tag": "withdrawRequest",
-            "callback": str(
-                request.url_for(
-                    "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
-                )
-            ),
+            "callback": str(request.url_for(
+                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id, variable=None
+            )),
             "k1": p,
             "minWithdrawable": price_msat * 1000,
             "maxWithdrawable": price_msat * 1000,
@@ -174,11 +172,9 @@ async def lnurl_params(
         return {"status": "ERROR", "reason": "Could not create payment."}
     return {
         "tag": "payRequest",
-        "callback": str(
-            request.url_for(
-                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
-            )
-        ),
+        "callback": str(request.url_for(
+            "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id, variable=None
+        )),
         "minSendable": price_msat * 1000,
         "maxSendable": price_msat * 1000,
         "metadata": device.lnurlpay_metadata,
