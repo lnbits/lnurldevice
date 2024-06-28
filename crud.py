@@ -208,6 +208,7 @@ async def get_lnurldevicepayment(
     )
     return LnurldevicePayment(**row) if row else None
 
+
 async def get_lnurldevicepayment_by_p(
     p: str,
 ) -> Optional[LnurldevicePayment]:
@@ -217,11 +218,21 @@ async def get_lnurldevicepayment_by_p(
     )
     return LnurldevicePayment(**row) if row else None
 
+
 async def get_lnurlpayload(
     lnurldevicepayment_payload: str,
 ) -> Optional[LnurldevicePayment]:
     row = await db.fetchone(
         "SELECT * FROM lnurldevice.lnurldevicepayment WHERE payload = ?",
         (lnurldevicepayment_payload,),
+    )
+    return LnurldevicePayment(**row) if row else None
+
+async def get_recent_lnurldevicepayment(
+    p: str,
+) -> Optional[LnurldevicePayment]:
+    row = await db.fetchone(
+        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE payload = ? ORDER BY timestamp DESC LIMIT 1",
+        (p,),
     )
     return LnurldevicePayment(**row) if row else None

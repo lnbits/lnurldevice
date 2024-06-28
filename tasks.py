@@ -8,6 +8,7 @@ from lnbits.tasks import register_invoice_listener
 from .crud import get_lnurldevicepayment, update_lnurldevicepayment
 from loguru import logger
 
+
 async def wait_for_paid_invoices():
     invoice_queue = asyncio.Queue()
     register_invoice_listener(invoice_queue, get_current_extension_name())
@@ -36,7 +37,10 @@ async def on_invoice_paid(payment: Payment) -> None:
             variable = True
         payload = lnurldevicepayment.payload
         if variable:
-            payload = int((int(payload) / int(lnurldevicepayment.sats)) * int(payment.extra["amount"]))
+            payload = int(
+                (int(payload) / int(lnurldevicepayment.sats))
+                * int(payment.extra["amount"])
+            )
 
         if comment:
             return await websocket_updater(
