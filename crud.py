@@ -9,7 +9,7 @@ from lnbits.helpers import urlsafe_short_hash
 
 from . import db
 from .models import CreateLnurldevice, Lnurldevice, LnurldevicePayment
-
+from loguru import logger
 
 async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevice:
     if data.device == "pos" or data.device == "atm":
@@ -208,6 +208,16 @@ async def get_lnurldevicepayment(
     )
     return LnurldevicePayment(**row) if row else None
 
+async def get_lnurldevicepayments(lnurldevice_ids: List[str]) -> List[LnurldevicePayment]:
+    q = ",".join(["?"] * len(lnurldevice_ids))
+    rows = await db.fetchall(
+        f"""
+        SELECT * FROM lnurldevice.lnurldevicepayment WHERE deviceid IN ({q})
+        ORDER BY id
+        """,
+        (*lnurldevice_ids,),
+    )
+    return [LnurldevicePayment(**row) for row in rows]
 
 async def get_lnurldevicepayment_by_p(
     p: str,
@@ -236,3 +246,8 @@ async def get_recent_lnurldevicepayment(
         (p,),
     )
     return LnurldevicePayment(**row) if row else None
+
+async def delete_atm_payment_link(atm_id: str) -> None:
+    await db.execute(
+        "DELETE FROM lnurldevice.lnurldevicepayment WHERE id = ?", (atm_id,)
+    )

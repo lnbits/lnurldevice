@@ -16,7 +16,6 @@ from .lnurl import xor_decrypt
 from urllib.parse import urlparse, parse_qs
 from loguru import logger
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
-from .helpers import checkAtmPaymentExists
 import json
 from lnbits.lnurl import encode as lnurl_encode
 
@@ -31,76 +30,65 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
     )
 
 
-@lnurldevice_ext.get("/atm/{lnurl}", response_class=HTMLResponse)
-async def index(request: Request, lnurl: str):
-    url = str(lnurl_decode(lnurl))
+@lnurldevice_ext.get("/atm", response_class=HTMLResponse)
+async def atmpage(request: Request, lightning: str):
+    # Debug log for the incoming lightning request
+    logger.debug(lightning)
+
+    # Decode the lightning URL
+    url = str(lnurl_decode(lightning))
     if not url:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Unable to decode lnurl."
-        )
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Unable to decode lnurl.")
 
+    # Parse the URL to extract device ID and query parameters
     parsed_url = urlparse(url)
-    path_segments = parsed_url.path.split("/")
-    device = await get_lnurldevice((path_segments[-1]), request)
+    device_id = parsed_url.path.split("/")[-1]
+    device = await get_lnurldevice(device_id, request)
     if not device:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Unable to find device."
-        )
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Unable to find device.")
 
-    query_params = parse_qs(parsed_url.query)
-    p = query_params.get("p", [None])[0]
+    # Extract and validate the 'p' parameter
+    p = parse_qs(parsed_url.query).get("p", [None])[0]
     if p is None:
-        raise HTTPException(
-            status_code=HTTPStatus.BAD_REQUEST, detail="Missing 'p' parameter."
-        )
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Missing 'p' parameter.")
+    # Adjust for base64 padding if necessary
+    p += "=" * (-len(p) % 4)
 
-    if len(p) % 4 > 0:  # Adjust for base64 padding if necessary
-        p += "=" * (4 - (len(p) % 4))
-
-    data = base64.urlsafe_b64decode(p)
+    # Decode and decrypt the 'p' parameter
     try:
+        data = base64.urlsafe_b64decode(p)
         decrypted = xor_decrypt(device.key.encode(), data)
-        logger.debug(decrypted)
     except Exception as exc:
-        return {"status": "ERROR", "reason": str(exc)}
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(exc))
 
+    # Determine the price in msat
+    if device.currency != "sat":
+        price_msat = await fiat_amount_as_satoshis(decrypted[1] / 100, device.currency)
+    else:
+        price_msat = decrypted[1]
+
+    # Check wallet and user access
     wallet = await get_wallet(device.wallet)
     if not wallet:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found."
-        )
-
-    lnurldevicepayment = await get_lnurldevicepayment_by_p(p)
-    if lnurldevicepayment:
-        if lnurldevicepayment.payload == lnurldevicepayment.payhash:
-            return {"status": "ERROR", "reason": "Payment already claimed"}
-
+        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found.")
     access = await check_user_extension_access(wallet.user, "boltz")
 
-    data = base64.urlsafe_b64decode(p)
-    try:
-        pin, amount_in_cent = xor_decrypt(device.key.encode(), data)
-    except Exception as exc:
-        return {"status": "ERROR", "reason": str(exc)}
-    price_msat = (
-        await fiat_amount_as_satoshis(float(amount_in_cent) / 100, device.currency)
-        if device.currency != "sat"
-        else amount_in_cent
-    ) * 1000
-    try:
-        recentPayAttempt = await get_recent_lnurldevicepayment(p)
-    except Exception as exc:
-        recentPayAttempt = False
+    # Attempt to get recent payment information
+    recentPayAttempt = await get_recent_lnurldevicepayment(p)
+    logger.debug(recentPayAttempt)
+
+    # Render the response template
     return lnurldevice_renderer().TemplateResponse(
         "lnurldevice/atm.html",
         {
             "request": request,
-            "lnurl": lnurl,
-            "amount": int(price_msat / 1000),
+            "lnurl": lightning,
+            "amount": int(price_msat),
             "device_id": device.id,
             "boltz": access.success or None,
             "p": p,
-            "recentpay": recentPayAttempt.id,
+            "recentpay": recentPayAttempt.id if recentPayAttempt else False,
+            "used": True if recentPayAttempt and recentPayAttempt.payload == recentPayAttempt.payhash else False,
         },
     )
 

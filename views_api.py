@@ -20,13 +20,20 @@ from .crud import (
     get_lnurldevices,
     update_lnurldevice,
     update_lnurldevicepayment,
+    get_lnurldevicepayments,
+    get_lnurldevicepayment,
+    delete_atm_payment_link,
 )
-from .models import CreateLnurldevice
-from .helpers import registerAtmPayment
+from lnbits.core.views.api import api_lnurlscan
+from .models import CreateLnurldevice, Lnurlencode
+from .helpers import register_atm_payment
 from lnbits.core.services import pay_invoice
 from lnbits.decorators import check_user_extension_access
 from lnbits.app import settings
+from bolt11 import decode as bolt11_decode
+from lnbits.lnurl import encode as lnurl_encode
 import httpx
+
 
 @lnurldevice_ext.get("/api/v1/currencies")
 async def api_list_currencies_available():
@@ -83,95 +90,172 @@ async def api_lnurldevice_delete(req: Request, lnurldevice_id: str):
 
 #########ATM API#########
 
+
+@lnurldevice_ext.get("/api/v1/atm")
+async def api_atm_payments_retrieve(
+    req: Request, wallet: WalletTypeInfo = Depends(get_key_type)
+):
+    user = await get_user(wallet.wallet.user)
+    assert user, "Lnurldevice cannot retrieve user"
+    lnurldevices = await get_lnurldevices(user.wallet_ids, req)
+    deviceids = []
+    for lnurldevice in lnurldevices:
+        if lnurldevice.device == "atm":
+            deviceids.append(lnurldevice.id)
+    return await get_lnurldevicepayments(deviceids)
+
+@lnurldevice_ext.post("/api/v1/lnurlencode",  dependencies=[Depends(get_key_type)])
+async def api_lnurlencode(
+    data: Lnurlencode
+):
+    lnurl = lnurl_encode(data.url)
+    logger.debug(lnurl)
+    if not lnurl:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Lnurl could not be encoded."
+        )
+    return lnurl
+
+@lnurldevice_ext.delete(
+    "/api/v1/atm/{atm_id}", dependencies=[Depends(require_admin_key)]
+)
+async def api_atm_payment_delete(req: Request, atm_id: str):
+    lnurldevice = await get_lnurldevicepayment(atm_id)
+    if not lnurldevice:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="ATM payment does not exist."
+        )
+
+    await delete_atm_payment_link(atm_id)
+
+
 ###############
 ###Lightning###
 ###############
 
-@lnurldevice_ext.get(
-    "/api/v1/ln/{lnurldevice_id}/{p}/{ln}"
-)
-async def api_lnurldevice_atm_lnadress(req: Request, lnurldevice_id: str, p: str, ln: str):
 
-    # Check device exists
+@lnurldevice_ext.get("/api/v1/ln/{lnurldevice_id}/{p}/{ln}")
+async def get_lnurldevice_payment_lightning(
+    req: Request, lnurldevice_id: str, p: str, ln: str
+):
+    """
+    Handle Lightning payments for atms via invoice, lnaddress, lnurlp.
+    """
+    ln = ln.strip().lower()
 
     lnurldevice = await get_lnurldevice(lnurldevice_id, req)
     if not lnurldevice:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="lnurldevice does not exist"
         )
-    
-    # Register payment to avoid double pull
 
-    lnurldevicepayment, price_msat = await registerAtmPayment(lnurldevice, p)
-    if lnurldevicepayment["status"] == "ERROR":
-        return lnurldevicepayment
+    wallet = await get_wallet(lnurldevice.wallet)
+    if not wallet:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Wallet does not exist connected to atm, payment could not be made",
+        )
+    lnurldevicepayment = await register_atm_payment(lnurldevice, p)
+    if not lnurldevicepayment:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Payment already claimed."
+        )
     
-    # Make payment 
-
+    # If its an invoice check its a legit invoice
+    if ln[:4] == "lnbc":
+        try:
+            bolt11_decode(ln)
+        except Exception as exc:
+            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(exc))
+    # If its an lnaddress or lnurlp get the request from callback
+    elif ln[:5] == "lnurl" or "@" in ln and "." in ln.split("@")[-1]:
+        data = await api_lnurlscan(ln)
+        if data.get("status") == "ERROR":
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST, detail=data.get("reason")
+            )
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                url= f"{data['callback']}?amount={lnurldevicepayment.sats * 1000}"
+            )
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=HTTPStatus.BAD_REQUEST,
+                    detail="Could not get callback from lnurl",
+                )
+            ln = response.json()['pr']
+    # If ln is gibberish, return an error
+    else:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND,
+            detail="Wrong format for payment, could not be made. Use invoice, LNaddress or LNURLp",
+        )
+    # Finally log the payment and make the payment
     try:
+        lnurldevicepayment = await register_atm_payment(lnurldevice, p)
         lnurldevicepayment_updated = await update_lnurldevicepayment(
-            lnurldevicepayment_id=lnurldevicepayment.id, payhash=p
+            lnurldevicepayment_id=lnurldevicepayment.id, payhash=lnurldevicepayment.payload
         )
         assert lnurldevicepayment_updated
-        payment = await pay_invoice(
-            wallet_id=lnurldevicepayment_updated.wallet,
-            payment_request=ln,
-            amount=price_msat,
-            extra={"tag": "lnurldevice", "id": lnurldevicepayment.id},
-        )
+        if ln[:4] == "lnbc":
+            payment = await pay_invoice(
+                wallet_id=lnurldevice.wallet,
+                payment_request=ln,
+                max_sat=lnurldevicepayment.sats * 1000,
+                extra={"tag": "lnurldevice", "id": lnurldevicepayment.id},
+            )
+        assert payment
     except Exception as exc:
-        return {"status": "ERROR", "reason": str(exc)}
+        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(exc))
+
     return lnurldevicepayment.id
+
 
 ###############
 #####boltz#####
 ###############
 
-@lnurldevice_ext.get(
-    "'/api/v1/boltz/{lnurldevice_id}/{p}/{onchain_liquid}/{address}"
-)
-async def api_lnurldevice_atm_lnadress(req: Request, lnurldevice_id: str, p: str, onchain_liquid: str, address: str):
 
-    # Check device exists
-
+@lnurldevice_ext.get("'/api/v1/boltz/{lnurldevice_id}/{p}/{onchain_liquid}/{address}")
+async def get_lnurldevice_payment_boltz(
+    req: Request, lnurldevice_id: str, p: str, onchain_liquid: str, address: str
+):
+    """
+    Handle Boltz payments for atms.
+    """
     lnurldevice = await get_lnurldevice(lnurldevice_id, req)
     if not lnurldevice:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="lnurldevice does not exist"
         )
 
-    # Register payment to avoid double pull
-
-    lnurldevicepayment, price_msat = await registerAtmPayment(lnurldevice, p)
-    if lnurldevicepayment["status"] == "ERROR":
+    lnurldevicepayment, price_msat = await register_atm_payment(lnurldevice, p)
+    if lnurldevicepayment.get("status") == "ERROR":
         return lnurldevicepayment
 
-    # One less check Bolz is activated
-    
     wallet = await get_wallet(lnurldevice.wallet)
     access = await check_user_extension_access(wallet.user, "boltz")
     if not access.success:
         return {"status": "ERROR", "reason": "Boltz not enabled"}
+
     data = {
         "wallet": lnurldevice.wallet,
         "asset": onchain_liquid,
         "amount": price_msat,
         "instant_settlement": True,
-        "onchain_address": address
+        "onchain_address": address,
     }
     try:
         lnurldevicepayment_updated = await update_lnurldevicepayment(
-            lnurldevicepayment_id=lnurldevicepayment.id, payhash=p
+            lnurldevicepayment.id, p
         )
         assert lnurldevicepayment_updated
-
-        wallet = await get_wallet(lnurldevicepayment_updated.wallet)
-        headers = {"X-API-KEY": wallet.adminkey}
         async with httpx.AsyncClient() as client:
-            r = await client.post(
+            response = await client.post(
                 url=f"http://{settings.host}:{settings.port}/boltz/api/v1/swap",
-                headers=headers, data =data
+                headers={"X-API-KEY": wallet.adminkey},
+                data=data,
             )
-        return r.pop("wallet", None)
+        return response.json()
     except Exception as exc:
         return {"status": "ERROR", "reason": str(exc)}

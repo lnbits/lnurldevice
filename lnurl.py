@@ -17,7 +17,7 @@ from .crud import (
     update_lnurldevicepayment,
 )
 from fastapi.responses import JSONResponse
-from .helpers import registerAtmPayment, xor_decrypt
+from .helpers import register_atm_payment, xor_decrypt
 
 @lnurldevice_ext.get(
     "/api/v1/lnurl/{device_id}",
@@ -144,7 +144,7 @@ async def lnurl_params(
     ) * 1000
 
     if atm:
-        lnurldevicepayment, price_msat = await registerAtmPayment(device, p)
+        lnurldevicepayment, price_msat = await register_atm_payment(device, p)
         if lnurldevicepayment["status"] == "ERROR":
             return lnurldevicepayment
         if not lnurldevicepayment:
