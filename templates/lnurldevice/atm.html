@@ -18,13 +18,15 @@
 
                 <q-tabs v-model="tab" active-color="primary" align="justify">
 
-                    <q-tab name="lnurl" label="lnurl" @update="val => tab = val.name"></q-tab>
+                    <q-tab name="lnurl" label="lnurl" @click="updateTabAndClear(val)"></q-tab>
 
-                    <q-tab name="ln" label="lightnig" @update="val => tab = val.name"></q-tab>
+                    <q-tab name="ln" label="lightnig" @click="updateTabAndClear(val)"></q-tab>
 
-                    <q-tab :disable="boltz == 'None'" name="onchain" label="onchain" @update="val => tab = val.name"></q-tab>
+                    <q-tab :disable="boltz == 'None'" name="onchain" label="onchain"
+                        @click="updateTabAndClear(val)"></q-tab>
 
-                    <q-tab :disable="boltz == 'None'" name="liquid" label="liquid" @update="val => tab = val.name"></q-tab>
+                    <q-tab :disable="boltz == 'None'" name="liquid" label="liquid"
+                        @click="updateTabAndClear(val)"></q-tab>
                 </q-tabs>
                 <q-separator></q-separator>
 
@@ -133,81 +135,52 @@
             }
         },
         methods: {
-            launchFunction: function () {
-                // Your function logic here
-                console.log('test');
+            async sendLNaddress() {
+                try {
+                    const response = await LNbits.api.request('GET', `/lnurldevice/api/v1/ln/${this.device_id}/${this.p}/${this.ln}`, '')
+                    console.log(response.data)
+                    if (response.data) {
+                        this.ln = ''
+                        this.notifyUser('Payment should be with you shortly', 'positive')
+                        this.connectWebsocket(payment_id)
+                    }
+                } catch (error) {
+                    this.notifyApiError(error)
+                }
             },
-            sendLNaddress: function () {
-                self = this
-                LNbits.api
-                    .request(
-                        'GET',
-                        '/lnurldevice/api/v1/ln/' + this.device_id + '/' + this.p + '/' + this.ln,
-                        ''
-                    )
-                    .then(function (response) {
-                        console.log(response.data)
-                        if (response.data) {
-                            self.$q.notify({
-                                message: 'Payment should be with you shortly',
-                                type: 'positive',
-                                spinner: true,
-                                timeout: 5000
-                            })
-                            this.connectWebsocket(payment_id)
-                        }
-                    })
-                    .catch(function (error) {
-                        LNbits.utils.notifyApiError(error)
-                    })
+            updateTabAndClear(val) {
+                this.address = ''
+                this.ln = ''
+                this.tab = val.name
             },
-            sendOnchainAddress: function () {
+            sendOnchainAddress() {
                 this.onchain_liquid = 'BTC/BTC'
                 this.sendAddress()
             },
-            sendLiquidAddress: function () {
+            sendLiquidAddress() {
                 this.onchain_liquid = 'L-BTC/BTC'
                 this.sendAddress()
             },
-            sendAddress: function () {
-                self = this
-                LNbits.api
-                    .request(
-                        'GET',
-                        '/lnurldevice/api/v1/address/' + this.device_id + '/' + this.p + '/' + this.onchain_liquid + '/' + this.address,
-                        ''
-                    )
-                    .then(function (response) {
-                        console.log(response.data)
-                        if (response.data) {
-                            self.$q.notify({
-                                message: 'Payment should be with you shortly',
-                                type: 'positive',
-                                spinner: true,
-                                timeout: 5000
-                            })
-                            this.connectWebsocket(payment_id)
-                        }
-                    })
-                    .catch(function (error) {
-                        LNbits.utils.notifyApiError(error)
-                    })
-            },
-            connectWebsocket(payment_id) {
-                self = this
-                const protocol = location.protocol === 'https:' ? 'wss://' : 'ws://'
-                const localUrl = `${protocol}${document.domain}:${location.port}/api/v1/ws/${review_id}`
-                this.connection = new WebSocket(localUrl)
-                this.connection.onmessage = () => {
-                    self.$q.notify({
-                        message: 'Payment sent!',
-                        color: 'positive',
-                        icon: 'done',
-                        timeout: 5000
-                    })
+            async sendAddress() {
+                try {
+                    const response = await LNbits.api.request('GET', `/lnurldevice/api/v1/boltz/${this.device_id}/${this.p}/${this.onchain_liquid}/${this.address}`, '')
+                    if (response.data) {
+                        this.notifyUser('Payment should be with you shortly', 'positive')
+                        this.connectWebsocket(payment_id)
+                    }
+                } catch (error) {
+                    this.notifyApiError(error)
                 }
             },
-            closeParseDialog: function () {
+            connectWebsocket(payment_id) {
+                const protocol = location.protocol === 'https:' ? 'wss://' : 'ws://'
+                const localUrl = `${protocol}${document.domain}:${location.port}/api/v1/ws/${review_id}` // Ensure review_id is defined or passed correctly
+                this.connection = new WebSocket(localUrl)
+                this.connection.onmessage = () => {
+                    this.notifyUser('Payment sent!', 'positive')
+                }
+            },
+            closeParseDialog() {
                 setTimeout(() => {
                     clearInterval(this.parse.paymentChecker)
                 }, 10000)
@@ -215,23 +188,29 @@
             focusInput(el) {
                 this.$nextTick(() => this.$refs[el].focus())
             },
-            msatoshiFormat: function (value) {
+            msatoshiFormat(value) {
                 return LNbits.utils.formatSat(value / 1000)
             },
-            showParseDialog: function () {
+            showParseDialog() {
                 this.parse.show = true
                 this.parse.invoice = null
-                this.parse.copy.show =
-                    window.isSecureContext && navigator.clipboard?.readText !== undefined
+                this.parse.copy.show = window.isSecureContext && navigator.clipboard?.readText !== undefined
                 this.parse.data.request = ''
                 this.parse.data.comment = ''
                 this.parse.data.paymentChecker = null
                 this.focusInput('textArea')
+            },
+            notifyUser(message, type) {
+                this.$q.notify({
+                    message,
+                    type,
+                    spinner: type === 'positive',
+                    timeout: 5000
+                })
+            },
+            notifyApiError(error) {
+                LNbits.utils.notifyApiError(error)
             }
-        },
-
-        created: function () {
-            console.log(this.used)
         },
         watch: {
             tab: function (newVal, oldVal) {
@@ -240,8 +219,6 @@
                 }
             }
         }
-
-
     })
 </script>
 {% endblock %}

@@ -167,6 +167,7 @@ async def get_lnurldevice_payment_lightning(
             bolt11_decode(ln)
         except Exception as exc:
             raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(exc))
+
     # If its an lnaddress or lnurlp get the request from callback
     elif ln[:5] == "lnurl" or "@" in ln and "." in ln.split("@")[-1]:
         data = await api_lnurlscan(ln)
@@ -184,12 +185,14 @@ async def get_lnurldevice_payment_lightning(
                     detail="Could not get callback from lnurl",
                 )
             ln = response.json()['pr']
+
     # If ln is gibberish, return an error
     else:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Wrong format for payment, could not be made. Use invoice, LNaddress or LNURLp",
         )
+
     # Finally log the payment and make the payment
     try:
         lnurldevicepayment = await register_atm_payment(lnurldevice, p)
