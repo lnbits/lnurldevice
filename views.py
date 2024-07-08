@@ -1,14 +1,13 @@
 from http import HTTPStatus
 import base64
-from fastapi import Depends, HTTPException, Query, Request
+from fastapi import Depends, HTTPException, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 
 from lnbits.core.crud import update_payment_status, get_wallet, get_installed_extensions
-from lnbits.extension_manager import get_valid_extensions
 from lnbits.core.models import User
 from lnbits.core.views.api import api_payment
-from lnbits.decorators import check_user_exists, check_user_extension_access
+from lnbits.decorators import check_user_exists
 from lnbits.lnurl import decode as lnurl_decode
 
 from . import lnurldevice_ext, lnurldevice_renderer
@@ -71,11 +70,14 @@ async def atmpage(request: Request, lightning: str):
     wallet = await get_wallet(device.wallet)
     if not wallet:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found.")
+    
+    # check if boltz payouts is enabled but also check the boltz extension is enabled
     access = False
-    installed_extensions = await get_installed_extensions(active=True)
-    for extension in installed_extensions:
-        if extension.id == 'boltz' and extension.active:
-            access = True
+    if device.extra == "boltz":
+        installed_extensions = await get_installed_extensions(active=True)
+        for extension in installed_extensions:
+            if extension.id == 'boltz' and extension.active:
+                access = True
     logger.debug(access)
 
     # Attempt to get recent payment information

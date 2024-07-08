@@ -18,21 +18,21 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
         lnurldevice_id = urlsafe_short_hash()
     lnurldevice_key = urlsafe_short_hash()
 
-    if data.switches:
+    if data.extra and data.extra != "boltz":
         url = req.url_for("lnurldevice.lnurl_v2_params", device_id=lnurldevice_id)
-        for _switch in data.switches:
-            _switch.lnurl = lnurl_encode(
+        for _extra in data.extra:
+            _extra.lnurl = lnurl_encode(
                 str(url)
-                + f"?pin={_switch.pin}"
-                + f"&amount={_switch.amount}"
-                + f"&duration={_switch.duration}"
-                + f"&variable={_switch.variable}"
-                + f"&comment={_switch.comment}"
+                + f"?pin={_extra.pin}"
+                + f"&amount={_extra.amount}"
+                + f"&duration={_extra.duration}"
+                + f"&variable={_extra.variable}"
+                + f"&comment={_extra.comment}"
                 + f"&disabletime=0"
             )
 
     await db.execute(
-        "INSERT INTO lnurldevice.lnurldevice (id, key, title, wallet, profit, currency, device, switches) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        "INSERT INTO lnurldevice.lnurldevice (id, key, title, wallet, profit, currency, device, extra) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
         (
             lnurldevice_id,
             lnurldevice_key,
@@ -41,7 +41,7 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
             data.profit,
             data.currency,
             data.device,
-            json.dumps(data.switches, default=lambda x: x.dict()),
+            json.dumps(data.extra, default=lambda x: x.dict()) if data.extra != "boltz" else data.extra,
         ),
     )
 
@@ -54,16 +54,16 @@ async def update_lnurldevice(
     lnurldevice_id: str, data: CreateLnurldevice, req: Request
 ) -> Lnurldevice:
 
-    if data.switches:
+    if data.extra and device.extra != "boltz"
         url = req.url_for("lnurldevice.lnurl_v2_params", device_id=lnurldevice_id)
-        for _switch in data.switches:
-            _switch.lnurl = lnurl_encode(
+        for _extra in data.extra:
+            _extra.lnurl = lnurl_encode(
                 str(url)
-                + f"?pin={_switch.pin}"
-                + f"&amount={_switch.amount}"
-                + f"&duration={_switch.duration}"
-                + f"&variable={_switch.variable}"
-                + f"&comment={_switch.comment}"
+                + f"?pin={_extra.pin}"
+                + f"&amount={_extra.amount}"
+                + f"&duration={_extra.duration}"
+                + f"&variable={_extra.variable}"
+                + f"&comment={_extra.comment}"
             )
 
     await db.execute(
@@ -74,7 +74,7 @@ async def update_lnurldevice(
             profit = ?,
             currency = ?,
             device = ?,
-            switches = ?
+            extra = ?
         WHERE id = ?
         """,
         (
@@ -83,7 +83,7 @@ async def update_lnurldevice(
             data.profit,
             data.currency,
             data.device,
-            json.dumps(data.switches, default=lambda x: x.dict()),
+            json.dumps(data.extra, default=lambda x: x.dict()) if data.extra != "boltz" else data.extra,
             lnurldevice_id,
         ),
     )
@@ -102,16 +102,16 @@ async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurlde
     device = Lnurldevice(**row)
 
     # this is needed for backwards compabtibility, before the LNURL were cached inside db
-    if device.switches:
+    if device.extra and device.extra != "boltz":
         url = req.url_for("lnurldevice.lnurl_v2_params", device_id=device.id)
-        for _switch in device.switches:
-            _switch.lnurl = lnurl_encode(
+        for _extra in device.extra:
+            _extra.lnurl = lnurl_encode(
                 str(url)
-                + f"?pin={_switch.pin}"
-                + f"&amount={_switch.amount}"
-                + f"&duration={_switch.duration}"
-                + f"&variable={_switch.variable}"
-                + f"&comment={_switch.comment}"
+                + f"?pin={_extra.pin}"
+                + f"&amount={_extra.amount}"
+                + f"&duration={_extra.duration}"
+                + f"&variable={_extra.variable}"
+                + f"&comment={_extra.comment}"
             )
 
     return device
@@ -132,16 +132,16 @@ async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldev
     devices = [Lnurldevice(**row) for row in rows]
 
     for device in devices:
-        if device.switches:
+        if device.extra and device.extra != "boltz":
             url = req.url_for("lnurldevice.lnurl_v2_params", device_id=device.id)
-            for _switch in device.switches:
-                _switch.lnurl = lnurl_encode(
+            for _extra in device.extra:
+                _extra.lnurl = lnurl_encode(
                     str(url)
-                    + f"?pin={_switch.pin}"
-                    + f"&amount={_switch.amount}"
-                    + f"&duration={_switch.duration}"
-                    + f"&variable={_switch.variable}"
-                    + f"&comment={_switch.comment}"
+                    + f"?pin={_extra.pin}"
+                    + f"&amount={_extra.amount}"
+                    + f"&duration={_extra.duration}"
+                    + f"&variable={_extra.variable}"
+                    + f"&comment={_extra.comment}"
                 )
 
     return devices

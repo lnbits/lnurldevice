@@ -212,3 +212,9 @@ async def m005_redux(db):
 
     # drop old table columns
     await db.execute(f"DROP TABLE {old_db}")
+
+async def m006_redux(db):
+    # Rename switches so we can also use for atm
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevices RENAME COLUMN switches TO extra"
+    )
