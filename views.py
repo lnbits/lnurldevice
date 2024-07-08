@@ -4,19 +4,19 @@ from fastapi import Depends, HTTPException, Query, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 
-from lnbits.core.crud import update_payment_status, get_wallet
+from lnbits.core.crud import update_payment_status, get_wallet, get_installed_extensions
+from lnbits.extension_manager import get_valid_extensions
 from lnbits.core.models import User
 from lnbits.core.views.api import api_payment
 from lnbits.decorators import check_user_exists, check_user_extension_access
 from lnbits.lnurl import decode as lnurl_decode
 
 from . import lnurldevice_ext, lnurldevice_renderer
-from .crud import get_lnurldevice, get_lnurldevicepayment, get_lnurldevicepayment_by_p, get_recent_lnurldevicepayment
+from .crud import get_lnurldevice, get_lnurldevicepayment, get_recent_lnurldevicepayment
 from .lnurl import xor_decrypt
 from urllib.parse import urlparse, parse_qs
 from loguru import logger
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
-import json
 from lnbits.lnurl import encode as lnurl_encode
 
 templates = Jinja2Templates(directory="templates")
@@ -71,7 +71,12 @@ async def atmpage(request: Request, lightning: str):
     wallet = await get_wallet(device.wallet)
     if not wallet:
         raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found.")
-    access = await check_user_extension_access(wallet.user, "boltz")
+    access = False
+    installed_extensions = await get_installed_extensions(active=True)
+    for extension in installed_extensions:
+        if extension.id == 'boltz' and extension.active:
+            access = True
+    logger.debug(access)
 
     # Attempt to get recent payment information
     recentPayAttempt = await get_recent_lnurldevicepayment(p)
@@ -85,7 +90,7 @@ async def atmpage(request: Request, lightning: str):
             "lnurl": lightning,
             "amount": int(price_msat),
             "device_id": device.id,
-            "boltz": access.success or None,
+            "boltz": access or None,
             "p": p,
             "recentpay": recentPayAttempt.id if recentPayAttempt else False,
             "used": True if recentPayAttempt and recentPayAttempt.payload == recentPayAttempt.payhash else False,
