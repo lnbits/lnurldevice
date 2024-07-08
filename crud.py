@@ -54,7 +54,7 @@ async def update_lnurldevice(
     lnurldevice_id: str, data: CreateLnurldevice, req: Request
 ) -> Lnurldevice:
 
-    if data.extra and device.extra != "boltz"
+    if data.extra and device.extra != "boltz":
         url = req.url_for("lnurldevice.lnurl_v2_params", device_id=lnurldevice_id)
         for _extra in data.extra:
             _extra.lnurl = lnurl_encode(

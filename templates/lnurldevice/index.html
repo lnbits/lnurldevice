@@ -208,39 +208,35 @@
         <q-input v-if="formDialoglnurldevice.data.device != 'switch'" filled dense
           v-model.trim="formDialoglnurldevice.data.profit" type="number" max="90"
           label="Profit margin (% added to invoices/deducted from faucets)"></q-input>
-          <q-toggle
-          v-if="formDialoglnurldevice.data.device == 'atm'" 
-          v-model="boltzToggleState"
-        ></q-toggle>
         <div v-else>
-          <div v-if="formDialoglnurldevice.data.extra !== 'boltz'">
-            <q-btn unelevated class="q-mb-lg" round size="sm" icon="add" @click="addSwitch"
-              v-model="formDialoglnurldevice.data.extra" color="primary"></q-btn>
-            <q-btn unelevated class="q-mb-lg" round size="sm" icon="remove" @click="removeSwitch"
-              v-model="formDialoglnurldevice.data.extra" color="primary"></q-btn>
-            <div v-for="_switch in formDialoglnurldevice.data.extra">
-              <div class="row">
-                <div class="col">
-                  <q-input ref="setAmount" filled dense v-model.trim="_switch.amount" class="q-pb-md"
-                    :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"></q-input>
-                </div>
-                <div class="col q-ml-md">
-                  <q-input filled dense v-model.trim="_switch.duration" type="number" label="duration (ms)"></q-input>
-                </div>
-                <div class="col q-ml-md">
-                  <q-input filled dense v-model.trim="_switch.pin" type="number" label="GPIO pin"></q-input>
-                </div>
-                <div class="col q-ml-md">
-                  <q-checkbox v-model="_switch.variable" color="primary" label="Variable" size="xs"
-                    dense><q-tooltip>Variable time (Amount * Duration)</q-tooltip></q-checkbox>
-                  <q-checkbox v-model="_switch.comment" color="primary" label="Comment" size="xs"
-                    dense><q-tooltip>Enable
-                      LNURLp comments with payments</q-tooltip></q-checkbox>
-                </div>
+          <q-btn unelevated class="q-mb-lg" round size="sm" icon="add" @click="addSwitch"
+            v-model="formDialoglnurldevice.data.extra" color="primary"></q-btn>
+          <q-btn unelevated class="q-mb-lg" round size="sm" icon="remove" @click="removeSwitch"
+            v-model="formDialoglnurldevice.data.extra" color="primary"></q-btn>
+          <div v-for="_switch in formDialoglnurldevice.data.extra">
+            <div class="row">
+              <div class="col">
+                <q-input ref="setAmount" filled dense v-model.trim="_switch.amount" class="q-pb-md"
+                  :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-input filled dense v-model.trim="_switch.duration" type="number" label="duration (ms)"></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-input filled dense v-model.trim="_switch.pin" type="number" label="GPIO pin"></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-checkbox v-model="_switch.variable" color="primary" label="Variable" size="xs"
+                  dense><q-tooltip>Variable time (Amount * Duration)</q-tooltip></q-checkbox>
+                <q-checkbox v-model="_switch.comment" color="primary" label="Comment" size="xs" dense><q-tooltip>Enable
+                    LNURLp comments with payments</q-tooltip></q-checkbox>
               </div>
             </div>
           </div>
         </div>
+        <q-toggle v-if="formDialoglnurldevice.data.device == 'atm'"
+          :label="boltzToggleState ? 'Disable onchain/liquid support (boltz ext must be enabled)' : 'Enable onchain/liquid support (boltz ext must be enabled)'"
+          v-model="boltzToggleState" @input="handleBoltzToggleChange"></q-toggle>
         <div class="row q-mt-lg">
           <q-btn v-if="formDialoglnurldevice.data.id" unelevated color="primary" :disable="
                 formDialoglnurldevice.data.title == ''" type="submit">Update lnurldevice</q-btn>
@@ -316,6 +312,7 @@
         lnurldeviceLinks: [],
         atmLinks: [],
         lnurldeviceLinksObj: [],
+        boltzToggleState: false,
         devices: [
           {
             label: 'PoS',
@@ -436,15 +433,7 @@
     computed: {
       wsMessage: function () {
         return this.websocketMessage
-      },
-      boltzToggleState: {
-      get() {
-        return this.formDialoglnurldevice.data.extra ? 'boltz' : '';
-      },
-      set(newValue) {
-        this.toggleState = newValue === 'boltz';
       }
-    }
     },
     methods: {
       openQrCodeDialog: function (lnurldevice_id) {
@@ -636,6 +625,15 @@
         })
         self.settingsDialog.data = _.clone(lnurldevice._data)
         self.settingsDialog.show = true
+      }
+      ,
+      handleBoltzToggleChange(val) {
+        if (val) {
+          this.formDialoglnurldevice.data.extra = 'boltz'
+        }
+        else {
+          this.formDialoglnurldevice.data.extra = ''
+        }        
       },
       updatelnurldevice: function (wallet, data) {
         var self = this
@@ -729,7 +727,7 @@
           .catch(function (error) {
             LNbits.utils.notifyApiError(error)
           })
-      },
+      }
     },
     created: function () {
       var self = this
