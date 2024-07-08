@@ -18,7 +18,7 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
         lnurldevice_id = urlsafe_short_hash()
     lnurldevice_key = urlsafe_short_hash()
 
-    if data.extra and data.extra != "boltz":
+    if isinstance(data.extra, list):
         url = req.url_for("lnurldevice.lnurl_v2_params", device_id=lnurldevice_id)
         for _extra in data.extra:
             _extra.lnurl = lnurl_encode(
@@ -53,8 +53,7 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
 async def update_lnurldevice(
     lnurldevice_id: str, data: CreateLnurldevice, req: Request
 ) -> Lnurldevice:
-
-    if data.extra and device.extra != "boltz":
+    if isinstance(data.extra, list):
         url = req.url_for("lnurldevice.lnurl_v2_params", device_id=lnurldevice_id)
         for _extra in data.extra:
             _extra.lnurl = lnurl_encode(
@@ -102,7 +101,7 @@ async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurlde
     device = Lnurldevice(**row)
 
     # this is needed for backwards compabtibility, before the LNURL were cached inside db
-    if device.extra and device.extra != "boltz":
+    if isinstance(device.extra, list):
         url = req.url_for("lnurldevice.lnurl_v2_params", device_id=device.id)
         for _extra in device.extra:
             _extra.lnurl = lnurl_encode(
@@ -132,7 +131,7 @@ async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldev
     devices = [Lnurldevice(**row) for row in rows]
 
     for device in devices:
-        if device.extra and device.extra != "boltz":
+        if isinstance(device.extra, list):
             url = req.url_for("lnurldevice.lnurl_v2_params", device_id=device.id)
             for _extra in device.extra:
                 _extra.lnurl = lnurl_encode(

@@ -204,7 +204,7 @@
         <q-select filled dense v-model.trim="formDialoglnurldevice.data.currency" type="text"
           label="Fiat currency for device" :options="currency"></q-select>
         <q-option-group v-if="!formDialoglnurldevice.data.id" v-model.trim="formDialoglnurldevice.data.device"
-          :options="devices" color="primary" label="Type of device"></q-option-group>
+          :options="devices" color="primary" label="Type of device" @input="formDialoglnurldevice.data.extra = []"></q-option-group>
         <q-input v-if="formDialoglnurldevice.data.device != 'switch'" filled dense
           v-model.trim="formDialoglnurldevice.data.profit" type="number" max="90"
           label="Profit margin (% added to invoices/deducted from faucets)"></q-input>

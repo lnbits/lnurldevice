@@ -22,18 +22,16 @@
 
                     <q-tab name="ln" label="lightnig" @update="val => tab = val.name"></q-tab>
 
-                    <q-tab :disable="boltz == 'None'" name="onchain" label="onchain"
-                        @update="val => tab = val.name"></q-tab>
+                    <q-tab :disable="boltz == 'None'" name="onchain" label="onchain" @update="val => tab = val.name"></q-tab>
 
-                    <q-tab :disable="boltz == 'None'" name="liquid" label="liquid"
-                        @update="val => tab = val.name"></q-tab>
+                    <q-tab :disable="boltz == 'None'" name="liquid" label="liquid" @update="val => tab = val.name"></q-tab>
                 </q-tabs>
                 <q-separator></q-separator>
 
                 <q-tab-panels v-model="tab">
                     <q-tab-panel name="lnurl">
 
-                        <div class="text-h6">LNURL Withdraw</div>
+                        <div class="text-h8">LNURL Withdraw</div>
                         <div class="text-center">
                             <a class="text-secondary" :href="'lightning:' + qr_value">
                                 <q-responsive :ratio="1" class="q-mx-md">
@@ -48,7 +46,7 @@
                         </div>
                     </q-tab-panel>
                     <q-tab-panel name="ln">
-                        <div class="text-h6">Lightning / LNaddress / LNURL-pay withdraw</div>
+                        <div class="text-h8">Lightning / LNaddress / LNURL-pay withdraw</div>
                         <q-form @submit="sendLNaddress" class="q-gutter-md">
                             <q-input filled dense v-model.trim="ln" type="textarea"
                                 :label="'Paste an invoice for ' + amount + ' sats, an LNaddress or LNURL-pay'"
@@ -56,42 +54,35 @@
                             </q-input>
                             <div class="row q-mt-lg">
                                 <q-btn unelevated color="primary" :disable="ln == ''" type="submit"
-                                    :label="$t('pay')"></q-btn>
-                                <q-btn v-close-popup flat color="grey" class="q-ml-auto" :label="$t('cancel')"></q-btn>
+                                    :label="$t('withdraw')"></q-btn>
                             </div>
                         </q-form>
                     </q-tab-panel>
 
                     <q-tab-panel name="onchain" :disable="boltz == 'None'">
-                        <div class="text-h6">Onchain Withdraw</div>
-                        <div class="text-center">
-                            <a class="text-secondary" :href="'lightning:' + qr_value">
-                                <q-responsive :ratio="1" class="q-mx-md">
-                                    <qrcode :value="qr_value" :options="{width: 800}" class="rounded-borders"></qrcode>
-                                </q-responsive>
-                            </a>
-                        </div>
-
-                        <div class="row q-mt-lg q-gutter-sm">
-                            <q-btn outline color="grey" @click="copyText(qr_value, 'Address copied to clipboard!')">Copy
-                                LNURL </q-btn>
-                        </div>
+                        <div class="text-h8">Onchain Withdraw</div>
+                        <q-form @submit="sendOnchainAddress" class="q-gutter-md">
+                            <q-input filled dense v-model.trim="address" type="textarea"
+                                label="Paste an Onchain address" ref="textArea">
+                            </q-input>
+                            <div class="row q-mt-lg">
+                                <q-btn unelevated color="primary" :disable="address == ''" type="submit"
+                                    :label="$t('withdraw')"></q-btn>
+                            </div>
+                        </q-form>
                     </q-tab-panel>
 
                     <q-tab-panel name="liquid" :disable="boltz == 'None'">
-                        <div class="text-h6">Liquid Withdraw</div>
-                        <div class="text-center">
-                            <a class="text-secondary" :href="'lightning:' + qr_value">
-                                <q-responsive :ratio="1" class="q-mx-md">
-                                    <qrcode :value="qr_value" :options="{width: 800}" class="rounded-borders"></qrcode>
-                                </q-responsive>
-                            </a>
-                        </div>
-
-                        <div class="row q-mt-lg q-gutter-sm">
-                            <q-btn outline color="grey" @click="copyText(qr_value, 'Address copied to clipboard!')">Copy
-                                LNURL </q-btn>
-                        </div>
+                        <div class="text-h8">Liquid Withdraw</div>
+                        <q-form @submit="sendLiquidAddress" class="q-gutter-md">
+                            <q-input filled dense v-model.trim="address" type="textarea" label="Paste a Liquid address"
+                                ref="textArea">
+                            </q-input>
+                            <div class="row q-mt-lg">
+                                <q-btn unelevated color="primary" :disable="address == ''" type="submit"
+                                    :label="$t('withdraw')"></q-btn>
+                            </div>
+                        </q-form>
                     </q-tab-panel>
                 </q-tab-panels>
 
@@ -135,6 +126,8 @@
                 p: '{{p}}',
                 tab: 'lnurl',
                 ln: '',
+                address: '',
+                onchain_liquid: 'BTC/BTC',
                 recentpay: '{{recentpay}}',
                 payment_options: ['lnurl', 'ln', 'onchain', 'liquid']
             }
@@ -158,7 +151,39 @@
                             self.$q.notify({
                                 message: 'Payment should be with you shortly',
                                 type: 'positive',
-                                spinner: true, 
+                                spinner: true,
+                                timeout: 5000
+                            })
+                            this.connectWebsocket(payment_id)
+                        }
+                    })
+                    .catch(function (error) {
+                        LNbits.utils.notifyApiError(error)
+                    })
+            },
+            sendOnchainAddress: function () {
+                this.onchain_liquid = 'BTC/BTC'
+                this.sendAddress()
+            },
+            sendLiquidAddress: function () {
+                this.onchain_liquid = 'L-BTC/BTC'
+                this.sendAddress()
+            },
+            sendAddress: function () {
+                self = this
+                LNbits.api
+                    .request(
+                        'GET',
+                        '/lnurldevice/api/v1/address/' + this.device_id + '/' + this.p + '/' + this.onchain_liquid + '/' + this.address,
+                        ''
+                    )
+                    .then(function (response) {
+                        console.log(response.data)
+                        if (response.data) {
+                            self.$q.notify({
+                                message: 'Payment should be with you shortly',
+                                type: 'positive',
+                                spinner: true,
                                 timeout: 5000
                             })
                             this.connectWebsocket(payment_id)
