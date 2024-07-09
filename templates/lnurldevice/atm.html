@@ -33,7 +33,7 @@
                 <q-tab-panels v-model="tab">
                     <q-tab-panel name="lnurl">
 
-                        <div class="text-h8">LNURL Withdraw</div>
+                        <div class="text-h8">LNURL withdraw</div>
                         <div class="text-center">
                             <a class="text-secondary" :href="'lightning:' + qr_value">
                                 <q-responsive :ratio="1" class="q-mx-md">
@@ -62,7 +62,7 @@
                     </q-tab-panel>
 
                     <q-tab-panel name="onchain" :disable="boltz == 'None'">
-                        <div class="text-h8">Onchain Withdraw</div>
+                        <div class="text-h8">Onchain withdraw</div>
                         <q-form @submit="sendOnchainAddress" class="q-gutter-md">
                             <q-input filled dense v-model.trim="address" type="textarea"
                                 label="Paste an Onchain address" ref="textArea">
@@ -75,7 +75,7 @@
                     </q-tab-panel>
 
                     <q-tab-panel name="liquid" :disable="boltz == 'None'">
-                        <div class="text-h8">Liquid Withdraw</div>
+                        <div class="text-h8">Liquid withdraw</div>
                         <q-form @submit="sendLiquidAddress" class="q-gutter-md">
                             <q-input filled dense v-model.trim="address" type="textarea" label="Paste a Liquid address"
                                 ref="textArea">
@@ -154,11 +154,11 @@
                 this.tab = val.name
             },
             sendOnchainAddress() {
-                this.onchain_liquid = 'BTC/BTC'
+                this.onchain_liquid = 'BTC-BTC'
                 this.sendAddress()
             },
             sendLiquidAddress() {
-                this.onchain_liquid = 'L-BTC/BTC'
+                this.onchain_liquid = 'L-BTC-BTC'
                 this.sendAddress()
             },
             async sendAddress() {

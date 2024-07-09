@@ -243,7 +243,7 @@ async def get_lnurldevice_payment_boltz(
 
     data = {
         "wallet": lnurldevice.wallet,
-        "asset": onchain_liquid,
+        "asset": onchain_liquid.replace("-", "/"),
         "amount": price_msat,
         "instant_settlement": True,
         "onchain_address": address,
