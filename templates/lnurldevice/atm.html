@@ -22,11 +22,15 @@
 
                     <q-tab name="ln" label="lightnig" @click="updateTabAndClear(val)"></q-tab>
 
-                    <q-tab :disable="boltz == 'None'" name="onchain" label="onchain"
-                        @click="updateTabAndClear(val)"></q-tab>
+                    <q-tab :disable="boltz == 'None' || amount < 100000" name="onchain" label="onchain"
+                        @click="updateTabAndClear(val)">
+                        <q-tooltip v-if="amount < 100000">Amount is too small to send over onchain</q-tooltip>
+                    </q-tab>
 
-                    <q-tab :disable="boltz == 'None'" name="liquid" label="liquid"
-                        @click="updateTabAndClear(val)"></q-tab>
+                    <q-tab :disable="boltz == 'None' || amount < 100000" name="liquid" label="liquid"
+                        @click="updateTabAndClear(val)">
+                        <q-tooltip v-if="amount < 100000">Amount is too small to send over onchain</q-tooltip>
+                    </q-tab>
                 </q-tabs>
                 <q-separator></q-separator>
 
@@ -61,7 +65,7 @@
                         </q-form>
                     </q-tab-panel>
 
-                    <q-tab-panel name="onchain" :disable="boltz == 'None'">
+                    <q-tab-panel name="onchain" :disable="boltz == 'None'">  
                         <div class="text-h8">Onchain withdraw</div>
                         <q-form @submit="sendOnchainAddress" class="q-gutter-md">
                             <q-input filled dense v-model.trim="address" type="textarea"

@@ -1,15 +1,11 @@
 import json
 from typing import List, Optional
-
 import shortuuid
 from fastapi import Request
 from lnurl import encode as lnurl_encode
-
 from lnbits.helpers import urlsafe_short_hash
-
 from . import db
 from .models import CreateLnurldevice, Lnurldevice, LnurldevicePayment
-from loguru import logger
 
 async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevice:
     if data.device == "pos" or data.device == "atm":
@@ -48,7 +44,6 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
     device = await get_lnurldevice(lnurldevice_id, req)
     assert device, "Lnurldevice was created but could not be retrieved"
     return device
-
 
 async def update_lnurldevice(
     lnurldevice_id: str, data: CreateLnurldevice, req: Request
@@ -89,7 +84,6 @@ async def update_lnurldevice(
     device = await get_lnurldevice(lnurldevice_id, req)
     assert device, "Lnurldevice was updated but could not be retrieved"
     return device
-
 
 async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurldevice]:
     row = await db.fetchone(
@@ -145,12 +139,10 @@ async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldev
 
     return devices
 
-
 async def delete_lnurldevice(lnurldevice_id: str) -> None:
     await db.execute(
         "DELETE FROM lnurldevice.lnurldevice WHERE id = ?", (lnurldevice_id,)
     )
-
 
 async def create_lnurldevicepayment(
     deviceid: str,
@@ -184,7 +176,6 @@ async def create_lnurldevicepayment(
     assert dpayment, "Couldnt retrieve newly created LnurldevicePayment"
     return dpayment
 
-
 async def update_lnurldevicepayment(
     lnurldevicepayment_id: str, **kwargs
 ) -> LnurldevicePayment:
@@ -196,7 +187,6 @@ async def update_lnurldevicepayment(
     dpayment = await get_lnurldevicepayment(lnurldevicepayment_id)
     assert dpayment, "Couldnt retrieve update LnurldevicePayment"
     return dpayment
-
 
 async def get_lnurldevicepayment(
     lnurldevicepayment_id: str,

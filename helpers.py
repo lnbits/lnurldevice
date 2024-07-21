@@ -4,7 +4,6 @@ import base64
 import hmac
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 from .crud import get_recent_lnurldevicepayment, create_lnurldevicepayment
-from loguru import logger
 
 async def register_atm_payment(device, p):
     """
