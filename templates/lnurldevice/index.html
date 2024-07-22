@@ -236,7 +236,7 @@
           </div>
         </div>
         <q-toggle v-if="formDialoglnurldevice.data.device == 'atm'"
-          :label="boltzToggleState ? 'Disable onchain/liquid support (boltz ext must be enabled)' : 'Enable onchain/liquid support (boltz ext must be enabled)'"
+          :label="boltzToggleState ? 'Disable onchain/liquid support' : 'Enable onchain/liquid support (boltz ext must be enabled)'"
           v-model="boltzToggleState" @input="handleBoltzToggleChange"></q-toggle>
         <div class="row q-mt-lg">
           <q-btn v-if="formDialoglnurldevice.data.id" unelevated color="primary" :disable="
@@ -617,6 +617,12 @@
           id: lnurldeviceId
         })
         self.formDialoglnurldevice.data = _.clone(lnurldevice._data)
+        if(lnurldevice.device == 'atm' && lnurldevice.extra == 'boltz') {
+          self.boltzToggleState = true
+        }
+        else {
+          self.boltzToggleState = false
+        }
         self.formDialoglnurldevice.show = true
       },
       openlnurldeviceSettings: function (lnurldeviceId) {

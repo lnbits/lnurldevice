@@ -78,11 +78,9 @@ async def atmpage(request: Request, lightning: str):
         for extension in installed_extensions:
             if extension.id == 'boltz' and extension.active:
                 access = True
-    logger.debug(access)
 
     # Attempt to get recent payment information
     recentPayAttempt = await get_recent_lnurldevicepayment(p)
-    logger.debug(recentPayAttempt)
 
     # Render the response template
     return lnurldevice_renderer().TemplateResponse(

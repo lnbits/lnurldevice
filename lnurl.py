@@ -115,8 +115,7 @@ async def lnurl_params(
                 request.url_for(
                     "lnurldevice.lnurl_callback",
                     paymentid=lnurldevicepayment.id,
-                    variable=variable,
-                )
+                ) + f"?variable={variable}",
             ),
             "minSendable": price_msat,
             "maxSendable": price_msat,
@@ -141,25 +140,23 @@ async def lnurl_params(
         await fiat_amount_as_satoshis(float(amount_in_cent) / 100, device.currency)
         if device.currency != "sat"
         else amount_in_cent
-    ) * 1000
+    )
 
     if atm:
-        lnurldevicepayment, price_msat = await register_atm_payment(device, p)
-        if lnurldevicepayment["status"] == "ERROR":
-            return lnurldevicepayment
+        lnurldevicepayment = await register_atm_payment(device, p)
         if not lnurldevicepayment:
             return {"status": "ERROR", "reason": "Could not create ATM payment."}
         return {
             "tag": "withdrawRequest",
             "callback": str(request.url_for(
-                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id, variable=None
+                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
             )),
             "k1": p,
             "minWithdrawable": price_msat * 1000,
             "maxWithdrawable": price_msat * 1000,
             "defaultDescription": f"{device.title} - pin: {lnurldevicepayment.pin}",
         }
-    price_msat = int(price_msat * ((device.profit / 100) + 1) / 1000)
+    price_msat = int(price_msat * ((device.profit / 100) + 1))
 
     lnurldevicepayment = await create_lnurldevicepayment(
         deviceid=device.id,
@@ -173,7 +170,7 @@ async def lnurl_params(
     return {
         "tag": "payRequest",
         "callback": str(request.url_for(
-            "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id, variable=None
+            "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
         )),
         "minSendable": price_msat * 1000,
         "maxSendable": price_msat * 1000,

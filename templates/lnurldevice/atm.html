@@ -52,7 +52,7 @@
                         </div>
                     </q-tab-panel>
                     <q-tab-panel name="ln">
-                        <div class="text-h8">Lightning / LNaddress / LNURL-pay withdraw</div>
+                        <div class="text-h8">Lightning / LNaddress / LNURL-pay</div>
                         <q-form @submit="sendLNaddress" class="q-gutter-md">
                             <q-input filled dense v-model.trim="ln" type="textarea"
                                 :label="'Paste an invoice for ' + amount + ' sats, an LNaddress or LNURL-pay'"
@@ -66,7 +66,7 @@
                     </q-tab-panel>
 
                     <q-tab-panel name="onchain" :disable="boltz == 'None'">  
-                        <div class="text-h8">Onchain withdraw</div>
+                        <div class="text-h8">Onchain</div>
                         <q-form @submit="sendOnchainAddress" class="q-gutter-md">
                             <q-input filled dense v-model.trim="address" type="textarea"
                                 label="Paste an Onchain address" ref="textArea">
@@ -79,7 +79,7 @@
                     </q-tab-panel>
 
                     <q-tab-panel name="liquid" :disable="boltz == 'None'">
-                        <div class="text-h8">Liquid withdraw</div>
+                        <div class="text-h8">Liquid</div>
                         <q-form @submit="sendLiquidAddress" class="q-gutter-md">
                             <q-input filled dense v-model.trim="address" type="textarea" label="Paste a Liquid address"
                                 ref="textArea">
