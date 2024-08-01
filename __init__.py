@@ -5,10 +5,16 @@ from lnbits.db import Database
 from loguru import logger
 
 from .tasks import wait_for_paid_invoices
+from .views import lnurldevice_generic_router
+from .views_api import lnurldevice_api_router
+from .views_lnurl import lnurldevice_lnurl_router
 
 db = Database("ext_lnurldevice")
 
 lnurldevice_ext: APIRouter = APIRouter(prefix="/lnurldevice", tags=["lnurldevice"])
+lnurldevice_ext.include_router(lnurldevice_generic_router)
+lnurldevice_ext.include_router(lnurldevice_api_router)
+lnurldevice_ext.include_router(lnurldevice_lnurl_router)
 
 lnurldevice_static_files = [
     {
