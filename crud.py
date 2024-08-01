@@ -208,6 +208,7 @@ async def get_lnurldevicepayment(
     )
     return LnurldevicePayment(**row) if row else None
 
+
 async def get_lnurldevicepayment_by_p(
     p: str,
 ) -> Optional[LnurldevicePayment]:
@@ -216,6 +217,7 @@ async def get_lnurldevicepayment_by_p(
         (p,),
     )
     return LnurldevicePayment(**row) if row else None
+
 
 async def get_lnurlpayload(
     lnurldevicepayment_payload: str,

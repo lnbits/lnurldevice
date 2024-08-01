@@ -179,8 +179,8 @@
           </small>
         </p>
         <p class="text-warning">
-          WARNING: updating the switches amount, duration or pin will change the QR
-          code.
+          WARNING: updating the switches amount, duration or pin will change the
+          QR code.
         </p>
       </q-card-section>
     </q-card>
@@ -335,19 +335,25 @@
               </div>
               <div class="col q-ml-md">
                 <q-checkbox
-                v-model="_switch.variable"
-                color="primary"
-                label="Variable"
-                size="xs"
-                dense
-              ><q-tooltip>Variable time (Amount * Duration)</q-tooltip></q-checkbox>
+                  v-model="_switch.variable"
+                  color="primary"
+                  label="Variable"
+                  size="xs"
+                  dense
+                  ><q-tooltip
+                    >Variable time (Amount * Duration)</q-tooltip
+                  ></q-checkbox
+                >
                 <q-checkbox
-                v-model="_switch.comment"
-                color="primary"
-                label="Comment"
-                size="xs"
-                dense
-              ><q-tooltip>Enable LNURLp comments with payments</q-tooltip></q-checkbox>
+                  v-model="_switch.comment"
+                  color="primary"
+                  label="Comment"
+                  size="xs"
+                  dense
+                  ><q-tooltip
+                    >Enable LNURLp comments with payments</q-tooltip
+                  ></q-checkbox
+                >
               </div>
             </div>
           </div>
