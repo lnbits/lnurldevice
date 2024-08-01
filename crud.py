@@ -3,9 +3,8 @@ from typing import List, Optional
 
 import shortuuid
 from fastapi import Request
-from lnurl import encode as lnurl_encode
-
 from lnbits.helpers import urlsafe_short_hash
+from lnurl import encode as lnurl_encode
 
 from . import db
 from .models import CreateLnurldevice, Lnurldevice, LnurldevicePayment
@@ -28,11 +27,15 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
                 + f"&duration={_switch.duration}"
                 + f"&variable={_switch.variable}"
                 + f"&comment={_switch.comment}"
-                + f"&disabletime=0"
+                + "&disabletime=0"
             )
 
     await db.execute(
-        "INSERT INTO lnurldevice.lnurldevice (id, key, title, wallet, profit, currency, device, switches) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        """
+        INSERT INTO lnurldevice.lnurldevice
+        (id, key, title, wallet, profit, currency, device, switches)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
         (
             lnurldevice_id,
             lnurldevice_key,
@@ -101,7 +104,8 @@ async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurlde
 
     device = Lnurldevice(**row)
 
-    # this is needed for backwards compabtibility, before the LNURL were cached inside db
+    # this is needed for backwards compabtibility,
+    # before the LNURL were cached inside db
     if device.switches:
         url = req.url_for("lnurldevice.lnurl_v2_params", device_id=device.id)
         for _switch in device.switches:
@@ -128,7 +132,8 @@ async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldev
         (*wallet_ids,),
     )
 
-    # this is needed for backwards compabtibility, before the LNURL were cached inside db
+    # this is needed for backwards compabtibility,
+    # before the LNURL were cached inside db
     devices = [Lnurldevice(**row) for row in rows]
 
     for device in devices:
