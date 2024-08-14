@@ -1,16 +1,18 @@
 import asyncio
-from typing import List
 
 from fastapi import APIRouter
 from loguru import logger
 
-from lnbits.db import Database
-from lnbits.helpers import template_renderer
-from lnbits.tasks import create_permanent_unique_task
-
-db = Database("ext_lnurldevice")
+from .crud import db
+from .tasks import wait_for_paid_invoices
+from .views import lnurldevice_generic_router
+from .views_api import lnurldevice_api_router
+from .views_lnurl import lnurldevice_lnurl_router
 
 lnurldevice_ext: APIRouter = APIRouter(prefix="/lnurldevice", tags=["lnurldevice"])
+lnurldevice_ext.include_router(lnurldevice_generic_router)
+lnurldevice_ext.include_router(lnurldevice_api_router)
+lnurldevice_ext.include_router(lnurldevice_lnurl_router)
 
 lnurldevice_static_files = [
     {
@@ -18,19 +20,8 @@ lnurldevice_static_files = [
         "name": "lnurldevice_static",
     }
 ]
-
-
-def lnurldevice_renderer():
-    return template_renderer(["lnurldevice/templates"])
-
-
-from .lnurl import *  # noqa: F401,F403
-from .tasks import wait_for_paid_invoices
-from .views import *  # noqa: F401,F403
-from .views_api import *  # noqa: F401,F403
-
-
 scheduled_tasks: list[asyncio.Task] = []
+
 
 def lnurldevice_stop():
     for task in scheduled_tasks:
@@ -39,6 +30,18 @@ def lnurldevice_stop():
         except Exception as ex:
             logger.warning(ex)
 
+
 def lnurldevice_start():
+    from lnbits.tasks import create_permanent_unique_task
+
     task = create_permanent_unique_task("ext_lnurldevice", wait_for_paid_invoices)
     scheduled_tasks.append(task)
+
+
+__all__ = [
+    "db",
+    "lnurldevice_ext",
+    "lnurldevice_static_files",
+    "lnurldevice_start",
+    "lnurldevice_stop",
+]

@@ -3,16 +3,12 @@ import hmac
 from http import HTTPStatus
 from io import BytesIO
 
+import bolt11
 from embit import compact
-from fastapi import HTTPException, Query, Request
-
-from lnbits import bolt11
-from lnbits.core.services import create_invoice
-from lnbits.core.views.api import pay_invoice
+from fastapi import APIRouter, HTTPException, Query, Request
+from lnbits.core.services import create_invoice, pay_invoice
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
-from loguru import logger
 
-from . import lnurldevice_ext
 from .crud import (
     create_lnurldevicepayment,
     get_lnurldevice,
@@ -20,7 +16,8 @@ from .crud import (
     get_lnurldevicepayment_by_p,
     update_lnurldevicepayment,
 )
-from fastapi.responses import JSONResponse
+
+lnurldevice_lnurl_router = APIRouter()
 
 
 def xor_decrypt(key, blob):
@@ -29,19 +26,19 @@ def xor_decrypt(key, blob):
     if variant != 1:
         raise RuntimeError("Not implemented")
     # reading nonce
-    l = s.read(1)[0]
-    nonce = s.read(l)
-    if len(nonce) != l:
+    val = s.read(1)[0]
+    nonce = s.read(val)
+    if len(nonce) != val:
         raise RuntimeError("Missing nonce bytes")
-    if l < 8:
+    if val < 8:
         raise RuntimeError("Nonce is too short")
 
     # reading payload
-    l = s.read(1)[0]
-    payload = s.read(l)
+    val = s.read(1)[0]
+    payload = s.read(val)
     if len(payload) > 32:
         raise RuntimeError("Payload is too long for this encryption method")
-    if len(payload) != l:
+    if len(payload) != val:
         raise RuntimeError("Missing payload bytes")
     hmacval = s.read()
     expected = hmac.new(
@@ -61,7 +58,7 @@ def xor_decrypt(key, blob):
     return str(pin), amount_in_cent
 
 
-@lnurldevice_ext.get(
+@lnurldevice_lnurl_router.get(
     "/api/v1/lnurl/{device_id}",
     status_code=HTTPStatus.OK,
     name="lnurldevice.lnurl_v1_params",
@@ -78,7 +75,7 @@ async def lnurl_v1_params(
     return await lnurl_params(request, device_id, p, atm, gpio, profit, amount)
 
 
-@lnurldevice_ext.get(
+@lnurldevice_lnurl_router.get(
     "/api/v2/lnurl/{device_id}",
     status_code=HTTPStatus.OK,
     name="lnurldevice.lnurl_v2_params",
@@ -94,7 +91,9 @@ async def lnurl_v2_params(
     variable: bool = Query(None),
     comment: bool = Query(None),
 ):
-    return await lnurl_params(request, device_id, p, atm, pin, amount, duration, variable, comment)
+    return await lnurl_params(
+        request, device_id, p, atm, pin, amount, duration, variable, comment
+    )
 
 
 async def lnurl_params(
@@ -116,11 +115,14 @@ async def lnurl_params(
         }
 
     if device.device == "switch":
-        price_msat = int((
-            await fiat_amount_as_satoshis(float(amount), device.currency)
-            if device.currency != "sat"
-            else float(amount)
-        ) * 1000)
+        price_msat = int(
+            (
+                await fiat_amount_as_satoshis(float(amount), device.currency)
+                if device.currency != "sat"
+                else float(amount)
+            )
+            * 1000
+        )
 
         # Check they're not trying to trick the switch!
         check = False
@@ -148,16 +150,20 @@ async def lnurl_params(
             return {"status": "ERROR", "reason": "Could not create payment."}
         resp = {
             "tag": "payRequest",
-            "callback": str(request.url_for(
-                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id, variable=variable
-            )),
+            "callback": str(
+                request.url_for(
+                    "lnurldevice.lnurl_callback",
+                    paymentid=lnurldevicepayment.id,
+                    variable=variable,
+                )
+            ),
             "minSendable": price_msat,
             "maxSendable": price_msat,
             "metadata": device.lnurlpay_metadata,
         }
-        if comment == True:
+        if comment:
             resp["commentAllowed"] = 1500
-        if variable == True:
+        if variable:
             resp["maxSendable"] = price_msat * 360
         return resp
 
@@ -180,9 +186,9 @@ async def lnurl_params(
         if device.device != "atm":
             return {"status": "ERROR", "reason": "Not ATM device."}
         price_msat = int(price_msat * (1 - (device.profit / 100)) / 1000)
-        lnurldevicepayment = await get_lnurldevicepayment_by_p(p)
-        if lnurldevicepayment:
-            if lnurldevicepayment.payload == lnurldevicepayment.payhash:
+        new_lnurldevicepayment = await get_lnurldevicepayment_by_p(p)
+        if new_lnurldevicepayment:
+            if new_lnurldevicepayment.payload == new_lnurldevicepayment.payhash:
                 return {"status": "ERROR", "reason": "Payment already claimed"}
         try:
             lnurldevicepayment = await create_lnurldevicepayment(
@@ -198,9 +204,13 @@ async def lnurl_params(
             return {"status": "ERROR", "reason": "Could not create ATM payment."}
         return {
             "tag": "withdrawRequest",
-            "callback": str(request.url_for(
-                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id, variable=None
-            )),
+            "callback": str(
+                request.url_for(
+                    "lnurldevice.lnurl_callback",
+                    paymentid=lnurldevicepayment.id,
+                    variable=None,
+                )
+            ),
             "k1": p,
             "minWithdrawable": price_msat * 1000,
             "maxWithdrawable": price_msat * 1000,
@@ -219,16 +229,20 @@ async def lnurl_params(
         return {"status": "ERROR", "reason": "Could not create payment."}
     return {
         "tag": "payRequest",
-        "callback": str(request.url_for(
-            "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id, variable=None
-        )),
+        "callback": str(
+            request.url_for(
+                "lnurldevice.lnurl_callback",
+                paymentid=lnurldevicepayment.id,
+                variable=None,
+            )
+        ),
         "minSendable": price_msat * 1000,
         "maxSendable": price_msat * 1000,
         "metadata": device.lnurlpay_metadata,
     }
 
 
-@lnurldevice_ext.get(
+@lnurldevice_lnurl_router.get(
     "/api/v1/lnurl/cb/{paymentid}/{variable}",
     status_code=HTTPStatus.OK,
     name="lnurldevice.lnurl_callback",
@@ -281,7 +295,10 @@ async def lnurl_callback(
                     extra={"tag": "withdraw"},
                 )
             except Exception:
-                return {"status": "ERROR", "reason": "Payment failed, use a different wallet."}
+                return {
+                    "status": "ERROR",
+                    "reason": "Payment failed, use a different wallet.",
+                }
             return {"status": "OK"}
     if device.device == "switch":
         if not amount:
@@ -290,7 +307,10 @@ async def lnurl_callback(
         payment_hash, payment_request = await create_invoice(
             wallet_id=device.wallet,
             amount=int(amount / 1000),
-            memo=f"{device.id} pin {lnurldevicepayment.pin} ({lnurldevicepayment.payload} ms)",
+            memo=(
+                f"{device.id} pin {lnurldevicepayment.pin} "
+                f"({lnurldevicepayment.payload} ms)"
+            ),
             unhashed_description=device.lnurlpay_metadata.encode(),
             extra={
                 "tag": "Switch",
@@ -306,14 +326,14 @@ async def lnurl_callback(
             lnurldevicepayment_id=paymentid, payhash=payment_hash
         )
         resp = {
-                "pr": payment_request,
-                "successAction": {
-                    "tag": "message",
-                    "message": f"{int(amount / 1000)}sats sent"
-                },
-                "routes": [],
-            }
-        
+            "pr": payment_request,
+            "successAction": {
+                "tag": "message",
+                "message": f"{int(amount / 1000)}sats sent",
+            },
+            "routes": [],
+        }
+
         return resp
 
     payment_hash, payment_request = await create_invoice(
