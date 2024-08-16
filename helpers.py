@@ -12,10 +12,10 @@ async def register_atm_payment(device, p):
     lnurldevicepayment = await get_recent_lnurldevicepayment(p)
     # If the payment is already registered and been paid, return None
     if lnurldevicepayment and lnurldevicepayment.payload == lnurldevicepayment.payhash:
-        return None
+        return None, None
     # If the payment is already registered and not been paid, return lnurlpayment record
     elif lnurldevicepayment and lnurldevicepayment.payload != lnurldevicepayment.payhash:
-        return lnurldevicepayment
+        return lnurldevicepayment, None
     # else create a new lnurlpayment record
     else:
         data = base64.urlsafe_b64decode(p)

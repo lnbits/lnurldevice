@@ -171,6 +171,7 @@ async def get_lnurldevice_payment_lightning(
     # If its an lnaddress or lnurlp get the request from callback
     elif ln[:5] == "lnurl" or "@" in ln and "." in ln.split("@")[-1]:
         data = await api_lnurlscan(ln)
+        logger.debug(data)
         if data.get("status") == "ERROR":
             raise HTTPException(
                 status_code=HTTPStatus.BAD_REQUEST, detail=data.get("reason")
@@ -190,7 +191,7 @@ async def get_lnurldevice_payment_lightning(
     else:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND,
-            detail="Wrong format for payment, could not be made. Use invoice, LNaddress or LNURLp",
+            detail="Wrong format for payment, could not be made. Use LNaddress or LNURLp",
         )
 
     # Finally log the payment and make the payment
@@ -204,7 +205,7 @@ async def get_lnurldevice_payment_lightning(
             payment = await pay_invoice(
                 wallet_id=lnurldevice.wallet,
                 payment_request=ln,
-                max_sat=price_msat / 1000,
+                max_sat=price_msat,
                 extra={"tag": "lnurldevice", "id": lnurldevicepayment.id},
             )
         assert payment
