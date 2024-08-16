@@ -79,8 +79,8 @@ async def m002_redux(db):
                 """,
                 (row[0], row[1], row[3], row[4], row[5], row[6]),
             )
-    except:
-        return
+    except Exception:
+        pass
 
 
 async def m003_redux(db):

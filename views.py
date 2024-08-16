@@ -6,7 +6,6 @@ from fastapi.responses import HTMLResponse
 
 from lnbits.core.crud import update_payment_status, get_wallet, get_installed_extensions
 from lnbits.core.models import User
-from lnbits.core.views.api import api_payment
 from lnbits.decorators import check_user_exists
 from lnbits.lnurl import decode as lnurl_decode
 
@@ -19,9 +18,14 @@ from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 from lnbits.lnurl import encode as lnurl_encode
 
 templates = Jinja2Templates(directory="templates")
+lnurldevice_generic_router = APIRouter()
 
 
-@lnurldevice_ext.get("/", response_class=HTMLResponse)
+def lnurldevice_renderer():
+    return template_renderer(["lnurldevice/templates"])
+
+
+@lnurldevice_generic_router.get("/", response_class=HTMLResponse)
 async def index(request: Request, user: User = Depends(check_user_exists)):
     return lnurldevice_renderer().TemplateResponse(
         "lnurldevice/index.html",
@@ -112,11 +116,13 @@ async def displaypin(request: Request, paymentid: str):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="lnurldevice not found."
         )
-    status = await api_payment(lnurldevicepayment.payhash)
-    if status["paid"]:
-        await update_payment_status(
-            checking_id=lnurldevicepayment.payhash, pending=True
+    payment = await get_standalone_payment(lnurldevicepayment.payhash)
+    if not payment:
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Payment not found."
         )
+    status = await payment.check_status()
+    if status.success:
         return lnurldevice_renderer().TemplateResponse(
             "lnurldevice/paid.html", {"request": request, "pin": lnurldevicepayment.pin}
         )

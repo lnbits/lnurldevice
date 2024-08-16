@@ -6,7 +6,6 @@ from lnbits.helpers import get_current_extension_name
 from lnbits.tasks import register_invoice_listener
 
 from .crud import get_lnurldevicepayment, update_lnurldevicepayment
-from loguru import logger
 
 
 async def wait_for_paid_invoices():

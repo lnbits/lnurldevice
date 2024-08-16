@@ -2,10 +2,15 @@ import json
 from typing import List, Optional
 import shortuuid
 from fastapi import Request
-from lnurl import encode as lnurl_encode
+from lnbits.db import Database
 from lnbits.helpers import urlsafe_short_hash
-from . import db
+from lnurl import encode as lnurl_encode
+
+from lnbits.helpers import urlsafe_short_hash
 from .models import CreateLnurldevice, Lnurldevice, LnurldevicePayment
+
+db = Database("ext_lnurldevice")
+
 
 async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevice:
     if data.device == "pos" or data.device == "atm":
@@ -121,7 +126,8 @@ async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldev
         (*wallet_ids,),
     )
 
-    # this is needed for backwards compabtibility, before the LNURL were cached inside db
+    # this is needed for backwards compabtibility,
+    # before the LNURL were cached inside db
     devices = [Lnurldevice(**row) for row in rows]
 
     for device in devices:

@@ -162,8 +162,8 @@
           </small>
         </p>
         <p class="text-warning">
-          WARNING: updating the switches amount, duration or pin will change the QR
-          code.
+          WARNING: updating the switches amount, duration or pin will change the
+          QR code.
         </p>
       </q-card-section>
     </q-card>
@@ -479,6 +479,9 @@
       },
       sendFormDatalnurldevice: function () {
         var self = this
+        if (!self.formDialoglnurldevice.data.profit) {
+          self.formDialoglnurldevice.data.profit = 0
+        }
         if (self.formDialoglnurldevice.data.id) {
           this.updatelnurldevice(
             self.g.user.wallets[0].adminkey,

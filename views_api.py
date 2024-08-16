@@ -5,14 +5,11 @@ from loguru import logger
 
 from lnbits.core.crud import get_user, get_wallet
 from lnbits.decorators import (
-    WalletTypeInfo,
-    check_admin,
     get_key_type,
     require_admin_key,
 )
 from lnbits.utils.exchange_rates import currencies
 
-from . import lnurldevice_ext
 from .crud import (
     create_lnurldevice,
     delete_lnurldevice,
@@ -34,18 +31,22 @@ from bolt11 import decode as bolt11_decode
 from lnbits.lnurl import encode as lnurl_encode
 import httpx
 
+lnurldevice_api_router = APIRouter()
 
-@lnurldevice_ext.get("/api/v1/currencies")
+
+@lnurldevice_api_router.get("/api/v1/currencies")
 async def api_list_currencies_available():
     return list(currencies.keys())
 
 
-@lnurldevice_ext.post("/api/v1/lnurlpos", dependencies=[Depends(require_admin_key)])
+@lnurldevice_api_router.post(
+    "/api/v1/lnurlpos", dependencies=[Depends(require_admin_key)]
+)
 async def api_lnurldevice_create(data: CreateLnurldevice, req: Request):
     return await create_lnurldevice(data, req)
 
 
-@lnurldevice_ext.put(
+@lnurldevice_api_router.put(
     "/api/v1/lnurlpos/{lnurldevice_id}", dependencies=[Depends(require_admin_key)]
 )
 async def api_lnurldevice_update(
@@ -54,7 +55,7 @@ async def api_lnurldevice_update(
     return await update_lnurldevice(lnurldevice_id, data, req)
 
 
-@lnurldevice_ext.get("/api/v1/lnurlpos")
+@lnurldevice_api_router.get("/api/v1/lnurlpos")
 async def api_lnurldevices_retrieve(
     req: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
@@ -63,7 +64,7 @@ async def api_lnurldevices_retrieve(
     return await get_lnurldevices(user.wallet_ids, req)
 
 
-@lnurldevice_ext.get(
+@lnurldevice_api_router.get(
     "/api/v1/lnurlpos/{lnurldevice_id}", dependencies=[Depends(get_key_type)]
 )
 async def api_lnurldevice_retrieve(req: Request, lnurldevice_id: str):
@@ -75,7 +76,7 @@ async def api_lnurldevice_retrieve(req: Request, lnurldevice_id: str):
     return lnurldevice
 
 
-@lnurldevice_ext.delete(
+@lnurldevice_api_router.delete(
     "/api/v1/lnurlpos/{lnurldevice_id}", dependencies=[Depends(require_admin_key)]
 )
 async def api_lnurldevice_delete(req: Request, lnurldevice_id: str):
