@@ -3,13 +3,12 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, HTTPException, Query, Request
 
-from lnbits import bolt11
+import bolt11
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 
-from . import lnurldevice_ext
 from .crud import (
     create_lnurldevicepayment,
     get_lnurldevice,
@@ -18,6 +17,7 @@ from .crud import (
 )
 
 from .helpers import register_atm_payment, xor_decrypt
+
 lnurldevice_lnurl_router = APIRouter()
 
 @lnurldevice_lnurl_router.get(
@@ -144,7 +144,7 @@ async def lnurl_params(
     )
 
     if atm:
-        lnurldevicepayment = await register_atm_payment(device, p)
+        lnurldevicepayment, price_msat = await register_atm_payment(device, p)
         if not lnurldevicepayment:
             return {"status": "ERROR", "reason": "Could not create ATM payment."}
         return {
@@ -153,8 +153,8 @@ async def lnurl_params(
                 "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
             )),
             "k1": p,
-            "minWithdrawable": price_msat * 1000,
-            "maxWithdrawable": price_msat * 1000,
+            "minWithdrawable": price_msat,
+            "maxWithdrawable": price_msat,
             "defaultDescription": f"{device.title} - pin: {lnurldevicepayment.pin}",
         }
     price_msat = int(price_msat * ((device.profit / 100) + 1))

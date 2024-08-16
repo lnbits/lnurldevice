@@ -21,8 +21,9 @@ async def register_atm_payment(device, p):
         data = base64.urlsafe_b64decode(p)
         decrypted = xor_decrypt(device.key.encode(), data)
         price_msat = await fiat_amount_as_satoshis(float(decrypted[1]) / 100, device.currency) * 1000 if device.currency != "sat" else decrypted[1] * 1000
+        price_msat = int(price_msat * ((device.profit / 100) + 1))
         lnurldevicepayment = await create_lnurldevicepayment(deviceid=device.id, payload=p, sats=price_msat / 1000, pin=decrypted[0], payhash="payment_hash")
-        return lnurldevicepayment
+        return lnurldevicepayment, price_msat
 
 def xor_decrypt(key, blob):
     s = BytesIO(blob)

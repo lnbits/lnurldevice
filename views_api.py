@@ -1,9 +1,10 @@
 from http import HTTPStatus
 
-from fastapi import Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from loguru import logger
 
 from lnbits.core.crud import get_user, get_wallet
+from lnbits.core.models import WalletTypeInfo
 from lnbits.decorators import (
     get_key_type,
     require_admin_key,
@@ -32,7 +33,6 @@ from lnbits.lnurl import encode as lnurl_encode
 import httpx
 
 lnurldevice_api_router = APIRouter()
-
 
 @lnurldevice_api_router.get("/api/v1/currencies")
 async def api_list_currencies_available():
@@ -92,7 +92,7 @@ async def api_lnurldevice_delete(req: Request, lnurldevice_id: str):
 #########ATM API#########
 
 
-@lnurldevice_ext.get("/api/v1/atm")
+@lnurldevice_api_router.get("/api/v1/atm")
 async def api_atm_payments_retrieve(
     req: Request, wallet: WalletTypeInfo = Depends(get_key_type)
 ):
@@ -105,7 +105,7 @@ async def api_atm_payments_retrieve(
             deviceids.append(lnurldevice.id)
     return await get_lnurldevicepayments(deviceids)
 
-@lnurldevice_ext.post("/api/v1/lnurlencode",  dependencies=[Depends(get_key_type)])
+@lnurldevice_api_router.post("/api/v1/lnurlencode",  dependencies=[Depends(get_key_type)])
 async def api_lnurlencode(
     data: Lnurlencode
 ):
@@ -117,7 +117,7 @@ async def api_lnurlencode(
         )
     return lnurl
 
-@lnurldevice_ext.delete(
+@lnurldevice_api_router.delete(
     "/api/v1/atm/{atm_id}", dependencies=[Depends(require_admin_key)]
 )
 async def api_atm_payment_delete(req: Request, atm_id: str):
@@ -135,7 +135,7 @@ async def api_atm_payment_delete(req: Request, atm_id: str):
 ###############
 
 
-@lnurldevice_ext.get("/api/v1/ln/{lnurldevice_id}/{p}/{ln}")
+@lnurldevice_api_router.get("/api/v1/ln/{lnurldevice_id}/{p}/{ln}")
 async def get_lnurldevice_payment_lightning(
     req: Request, lnurldevice_id: str, p: str, ln: str
 ):
@@ -156,7 +156,7 @@ async def get_lnurldevice_payment_lightning(
             status_code=HTTPStatus.NOT_FOUND,
             detail="Wallet does not exist connected to atm, payment could not be made",
         )
-    lnurldevicepayment = await register_atm_payment(lnurldevice, p)
+    lnurldevicepayment, price_msat = await register_atm_payment(lnurldevice, p)
     if not lnurldevicepayment:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment already claimed."
@@ -164,10 +164,9 @@ async def get_lnurldevice_payment_lightning(
     
     # If its an invoice check its a legit invoice
     if ln[:4] == "lnbc":
-        try:
-            bolt11_decode(ln)
-        except Exception as exc:
-            raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(exc))
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Invoices not supported."
+        )
 
     # If its an lnaddress or lnurlp get the request from callback
     elif ln[:5] == "lnurl" or "@" in ln and "." in ln.split("@")[-1]:
@@ -196,7 +195,7 @@ async def get_lnurldevice_payment_lightning(
 
     # Finally log the payment and make the payment
     try:
-        lnurldevicepayment = await register_atm_payment(lnurldevice, p)
+        lnurldevicepayment, price_msat = await register_atm_payment(lnurldevice, p)
         lnurldevicepayment_updated = await update_lnurldevicepayment(
             lnurldevicepayment_id=lnurldevicepayment.id, payhash=lnurldevicepayment.payload
         )
@@ -205,7 +204,7 @@ async def get_lnurldevice_payment_lightning(
             payment = await pay_invoice(
                 wallet_id=lnurldevice.wallet,
                 payment_request=ln,
-                max_sat=lnurldevicepayment.sats * 1000,
+                max_sat=price_msat / 1000,
                 extra={"tag": "lnurldevice", "id": lnurldevicepayment.id},
             )
         assert payment
@@ -220,7 +219,7 @@ async def get_lnurldevice_payment_lightning(
 ###############
 
 
-@lnurldevice_ext.get("'/api/v1/boltz/{lnurldevice_id}/{p}/{onchain_liquid}/{address}")
+@lnurldevice_api_router.get("'/api/v1/boltz/{lnurldevice_id}/{p}/{onchain_liquid}/{address}")
 async def get_lnurldevice_payment_boltz(
     req: Request, lnurldevice_id: str, p: str, onchain_liquid: str, address: str
 ):

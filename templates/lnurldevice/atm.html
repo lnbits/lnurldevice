@@ -22,14 +22,16 @@
 
                     <q-tab name="ln" label="lightnig" @click="updateTabAndClear(val)"></q-tab>
 
-                    <q-tab :disable="boltz == 'None' || amount < 100000" name="onchain" label="onchain"
+                    <q-tab :disable="boltz == 'False' || amount < 100000" name="onchain" label="onchain"
                         @click="updateTabAndClear(val)">
-                        <q-tooltip v-if="amount < 100000">Amount is too small to send over onchain</q-tooltip>
+                        <q-tooltip v-if="boltz == 'True' && amount < 100000">Amount is too small to send over onchain, needs to be 10000+ sats</q-tooltip>
+                        <q-tooltip v-if="boltz == 'False'">Onchain not available</q-tooltip>
                     </q-tab>
 
-                    <q-tab :disable="boltz == 'None' || amount < 100000" name="liquid" label="liquid"
+                    <q-tab :disable="boltz == 'False' || amount < 2000" name="liquid" label="liquid"
                         @click="updateTabAndClear(val)">
-                        <q-tooltip v-if="amount < 100000">Amount is too small to send over onchain</q-tooltip>
+                        <q-tooltip v-if="boltz == 'True' && amount < 2000">Amount is too small to send over liquid, needs to be 2000+ sats</q-tooltip>
+                        <q-tooltip v-if="boltz == 'False'">Onchain not available</q-tooltip>
                     </q-tab>
                 </q-tabs>
                 <q-separator></q-separator>
@@ -55,7 +57,7 @@
                         <div class="text-h8">Lightning / LNaddress / LNURL-pay</div>
                         <q-form @submit="sendLNaddress" class="q-gutter-md">
                             <q-input filled dense v-model.trim="ln" type="textarea"
-                                :label="'Paste an invoice for ' + amount + ' sats, an LNaddress or LNURL-pay'"
+                                :label="'Paste an LNaddress or LNURL-pay'"
                                 ref="textArea">
                             </q-input>
                             <div class="row q-mt-lg">
@@ -65,7 +67,7 @@
                         </q-form>
                     </q-tab-panel>
 
-                    <q-tab-panel name="onchain" :disable="boltz == 'None'">  
+                    <q-tab-panel name="onchain" :disable="boltz === false">  
                         <div class="text-h8">Onchain</div>
                         <q-form @submit="sendOnchainAddress" class="q-gutter-md">
                             <q-input filled dense v-model.trim="address" type="textarea"
@@ -78,7 +80,7 @@
                         </q-form>
                     </q-tab-panel>
 
-                    <q-tab-panel name="liquid" :disable="boltz == 'None'">
+                    <q-tab-panel name="liquid" :disable="boltz === false">
                         <div class="text-h8">Liquid</div>
                         <q-form @submit="sendLiquidAddress" class="q-gutter-md">
                             <q-input filled dense v-model.trim="address" type="textarea" label="Paste a Liquid address"

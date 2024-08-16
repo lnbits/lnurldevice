@@ -8,10 +8,10 @@ from lnbits.core.crud import get_wallet, get_installed_extensions
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.lnurl import decode as lnurl_decode
+from lnbits.helpers import template_renderer
 
-from . import lnurldevice_ext, lnurldevice_renderer
 from .crud import get_lnurldevice, get_lnurldevicepayment, get_recent_lnurldevicepayment
-from .views_lnurl import xor_decrypt
+from .helpers import xor_decrypt
 from urllib.parse import urlparse, parse_qs
 from loguru import logger
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
@@ -19,7 +19,6 @@ from lnbits.lnurl import encode as lnurl_encode
 
 templates = Jinja2Templates(directory="templates")
 lnurldevice_generic_router = APIRouter()
-
 
 def lnurldevice_renderer():
     return template_renderer(["lnurldevice/templates"])
@@ -33,7 +32,7 @@ async def index(request: Request, user: User = Depends(check_user_exists)):
     )
 
 
-@lnurldevice_ext.get("/atm", response_class=HTMLResponse)
+@lnurldevice_generic_router.get("/atm", response_class=HTMLResponse)
 async def atmpage(request: Request, lightning: str):
     # Debug log for the incoming lightning request
     logger.debug(lightning)
@@ -82,6 +81,7 @@ async def atmpage(request: Request, lightning: str):
         for extension in installed_extensions:
             if extension.id == 'boltz' and extension.active:
                 access = True
+                logger.debug(access)
 
     # Attempt to get recent payment information
     recentPayAttempt = await get_recent_lnurldevicepayment(p)
@@ -92,9 +92,9 @@ async def atmpage(request: Request, lightning: str):
         {
             "request": request,
             "lnurl": lightning,
-            "amount": int(price_msat),
+            "amount": int(((int(price_msat) / 100) * device.profit) + int(price_msat)),
             "device_id": device.id,
-            "boltz": access or None,
+            "boltz": True if access else False,
             "p": p,
             "recentpay": recentPayAttempt.id if recentPayAttempt else False,
             "used": True if recentPayAttempt and recentPayAttempt.payload == recentPayAttempt.payhash else False,
@@ -102,7 +102,7 @@ async def atmpage(request: Request, lightning: str):
     )
 
 
-@lnurldevice_ext.get(
+@lnurldevice_generic_router.get(
     "/{paymentid}", name="lnurldevice.displaypin", response_class=HTMLResponse
 )
 async def displaypin(request: Request, paymentid: str):
@@ -132,7 +132,7 @@ async def displaypin(request: Request, paymentid: str):
     )
 
 
-@lnurldevice_ext.get("/print/{payment_id}", response_class=HTMLResponse)
+@lnurldevice_generic_router.get("/print/{payment_id}", response_class=HTMLResponse)
 async def print_receipt(request: Request, payment_id):
     lnurldevicepayment = await get_lnurldevicepayment(payment_id)
     if not lnurldevicepayment:

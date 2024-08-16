@@ -236,7 +236,7 @@
           </div>
         </div>
         <q-toggle v-if="formDialoglnurldevice.data.device == 'atm'"
-          :label="boltzToggleState ? 'Disable onchain/liquid support' : 'Enable onchain/liquid support (boltz ext must be enabled)'"
+          :label="boltzToggleState ? 'Onchain/liquid support enabled (boltz ext must be enabled)' : 'Onchain/liquid support disabled'"
           v-model="boltzToggleState" @input="handleBoltzToggleChange"></q-toggle>
         <div class="row q-mt-lg">
           <q-btn v-if="formDialoglnurldevice.data.id" unelevated color="primary" :disable="
