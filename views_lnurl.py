@@ -1,13 +1,13 @@
 import base64
 from http import HTTPStatus
 
-from fastapi import HTTPException, Query, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 
 from lnbits import bolt11
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
-from loguru import logger
+
 
 from . import lnurldevice_ext
 from .crud import (
@@ -16,10 +16,11 @@ from .crud import (
     get_lnurldevicepayment,
     update_lnurldevicepayment,
 )
-from fastapi.responses import JSONResponse
-from .helpers import register_atm_payment, xor_decrypt
 
-@lnurldevice_ext.get(
+from .helpers import register_atm_payment, xor_decrypt
+lnurldevice_lnurl_router = APIRouter()
+
+@lnurldevice_lnurl_router.get(
     "/api/v1/lnurl/{device_id}",
     status_code=HTTPStatus.OK,
     name="lnurldevice.lnurl_v1_params",
@@ -36,7 +37,7 @@ async def lnurl_v1_params(
     return await lnurl_params(request, device_id, p, atm, gpio, profit, amount)
 
 
-@lnurldevice_ext.get(
+@lnurldevice_lnurl_router.get(
     "/api/v2/lnurl/{device_id}",
     status_code=HTTPStatus.OK,
     name="lnurldevice.lnurl_v2_params",
@@ -178,7 +179,7 @@ async def lnurl_params(
     }
 
 
-@lnurldevice_ext.get(
+@lnurldevice_lnurl_router.get(
     "/api/v1/lnurl/cb/{paymentid}",
     status_code=HTTPStatus.OK,
     name="lnurldevice.lnurl_callback",

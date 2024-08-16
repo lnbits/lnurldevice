@@ -1,17 +1,17 @@
 from http import HTTPStatus
 import base64
-from fastapi import Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 
-from lnbits.core.crud import update_payment_status, get_wallet, get_installed_extensions
+from lnbits.core.crud import get_wallet, get_installed_extensions
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.lnurl import decode as lnurl_decode
 
 from . import lnurldevice_ext, lnurldevice_renderer
 from .crud import get_lnurldevice, get_lnurldevicepayment, get_recent_lnurldevicepayment
-from .lnurl import xor_decrypt
+from .views_lnurl import xor_decrypt
 from urllib.parse import urlparse, parse_qs
 from loguru import logger
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
