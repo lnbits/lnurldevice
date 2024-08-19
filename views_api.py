@@ -256,7 +256,7 @@ async def get_lnurldevice_payment_boltz(
         assert lnurldevicepayment_updated
         async with httpx.AsyncClient() as client:
             response = await client.post(
-                url=f"http://{settings.host}:{settings.port}/boltz/api/v1/swap",
+                url=f"http://{settings.host}:{settings.port}/boltz/api/v1/swap/reverse",
                 headers={"X-API-KEY": wallet.adminkey},
                 data=data,
             )

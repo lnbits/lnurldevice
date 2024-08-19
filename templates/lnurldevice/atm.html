@@ -150,6 +150,7 @@
                         this.notifyUser('Payment should be with you shortly', 'positive')
                         this.connectWebsocket(payment_id)
                     }
+                    window.location.reload()
                 } catch (error) {
                     this.notifyApiError(error)
                 }
