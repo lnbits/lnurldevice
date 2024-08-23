@@ -1,13 +1,11 @@
 import base64
 from http import HTTPStatus
 
-from fastapi import APIRouter, HTTPException, Query, Request
-
 import bolt11
+from fastapi import APIRouter, HTTPException, Query, Request
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
-
 
 from .crud import (
     create_lnurldevicepayment,
@@ -15,10 +13,10 @@ from .crud import (
     get_lnurldevicepayment,
     update_lnurldevicepayment,
 )
-
 from .helpers import register_atm_payment, xor_decrypt
 
 lnurldevice_lnurl_router = APIRouter()
+
 
 @lnurldevice_lnurl_router.get(
     "/api/v1/lnurl/{device_id}",
@@ -116,7 +114,8 @@ async def lnurl_params(
                 request.url_for(
                     "lnurldevice.lnurl_callback",
                     paymentid=lnurldevicepayment.id,
-                ) + f"?variable={variable}",
+                )
+                + f"?variable={variable}",
             ),
             "minSendable": price_msat,
             "maxSendable": price_msat,
@@ -149,9 +148,11 @@ async def lnurl_params(
             return {"status": "ERROR", "reason": "Could not create ATM payment."}
         return {
             "tag": "withdrawRequest",
-            "callback": str(request.url_for(
-                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
-            )),
+            "callback": str(
+                request.url_for(
+                    "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
+                )
+            ),
             "k1": p,
             "minWithdrawable": price_msat,
             "maxWithdrawable": price_msat,
@@ -170,9 +171,11 @@ async def lnurl_params(
         return {"status": "ERROR", "reason": "Could not create payment."}
     return {
         "tag": "payRequest",
-        "callback": str(request.url_for(
-            "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
-        )),
+        "callback": str(
+            request.url_for(
+                "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
+            )
+        ),
         "minSendable": price_msat * 1000,
         "maxSendable": price_msat * 1000,
         "metadata": device.lnurlpay_metadata,

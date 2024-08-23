@@ -57,5 +57,6 @@ class LnurldevicePayment(BaseModel):
     def from_row(cls, row: Row) -> "LnurldevicePayment":
         return cls(**dict(row))
 
+
 class Lnurlencode(BaseModel):
     url: str

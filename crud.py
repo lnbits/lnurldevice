@@ -1,12 +1,12 @@
 import json
 from typing import List, Optional
+
 import shortuuid
 from fastapi import Request
 from lnbits.db import Database
 from lnbits.helpers import urlsafe_short_hash
 from lnurl import encode as lnurl_encode
 
-from lnbits.helpers import urlsafe_short_hash
 from .models import CreateLnurldevice, Lnurldevice, LnurldevicePayment
 
 db = Database("ext_lnurldevice")
@@ -29,7 +29,7 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
                 + f"&duration={_extra.duration}"
                 + f"&variable={_extra.variable}"
                 + f"&comment={_extra.comment}"
-                + f"&disabletime=0"
+                + "&disabletime=0"
             )
 
     await db.execute(
@@ -42,13 +42,18 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
             data.profit,
             data.currency,
             data.device,
-            json.dumps(data.extra, default=lambda x: x.dict()) if data.extra != "boltz" else data.extra,
+            (
+                json.dumps(data.extra, default=lambda x: x.dict())
+                if data.extra != "boltz"
+                else data.extra
+            ),
         ),
     )
 
     device = await get_lnurldevice(lnurldevice_id, req)
     assert device, "Lnurldevice was created but could not be retrieved"
     return device
+
 
 async def update_lnurldevice(
     lnurldevice_id: str, data: CreateLnurldevice, req: Request
@@ -82,13 +87,18 @@ async def update_lnurldevice(
             data.profit,
             data.currency,
             data.device,
-            json.dumps(data.extra, default=lambda x: x.dict()) if data.extra != "boltz" else data.extra,
+            (
+                json.dumps(data.extra, default=lambda x: x.dict())
+                if data.extra != "boltz"
+                else data.extra
+            ),
             lnurldevice_id,
         ),
     )
     device = await get_lnurldevice(lnurldevice_id, req)
     assert device, "Lnurldevice was updated but could not be retrieved"
     return device
+
 
 async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurldevice]:
     row = await db.fetchone(
@@ -145,10 +155,12 @@ async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldev
 
     return devices
 
+
 async def delete_lnurldevice(lnurldevice_id: str) -> None:
     await db.execute(
         "DELETE FROM lnurldevice.lnurldevice WHERE id = ?", (lnurldevice_id,)
     )
+
 
 async def create_lnurldevicepayment(
     deviceid: str,
@@ -182,6 +194,7 @@ async def create_lnurldevicepayment(
     assert dpayment, "Couldnt retrieve newly created LnurldevicePayment"
     return dpayment
 
+
 async def update_lnurldevicepayment(
     lnurldevicepayment_id: str, **kwargs
 ) -> LnurldevicePayment:
@@ -194,6 +207,7 @@ async def update_lnurldevicepayment(
     assert dpayment, "Couldnt retrieve update LnurldevicePayment"
     return dpayment
 
+
 async def get_lnurldevicepayment(
     lnurldevicepayment_id: str,
 ) -> Optional[LnurldevicePayment]:
@@ -203,7 +217,10 @@ async def get_lnurldevicepayment(
     )
     return LnurldevicePayment(**row) if row else None
 
-async def get_lnurldevicepayments(lnurldevice_ids: List[str]) -> List[LnurldevicePayment]:
+
+async def get_lnurldevicepayments(
+    lnurldevice_ids: List[str],
+) -> List[LnurldevicePayment]:
     q = ",".join(["?"] * len(lnurldevice_ids))
     rows = await db.fetchall(
         f"""
@@ -213,6 +230,7 @@ async def get_lnurldevicepayments(lnurldevice_ids: List[str]) -> List[Lnurldevic
         (*lnurldevice_ids,),
     )
     return [LnurldevicePayment(**row) for row in rows]
+
 
 async def get_lnurldevicepayment_by_p(
     p: str,
@@ -233,6 +251,7 @@ async def get_lnurlpayload(
     )
     return LnurldevicePayment(**row) if row else None
 
+
 async def get_recent_lnurldevicepayment(
     p: str,
 ) -> Optional[LnurldevicePayment]:
@@ -241,6 +260,7 @@ async def get_recent_lnurldevicepayment(
         (p,),
     )
     return LnurldevicePayment(**row) if row else None
+
 
 async def delete_atm_payment_link(atm_id: str) -> None:
     await db.execute(

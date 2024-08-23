@@ -1,9 +1,12 @@
-from io import BytesIO
-from embit import compact
 import base64
 import hmac
+from io import BytesIO
+
+from embit import compact
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
-from .crud import get_recent_lnurldevicepayment, create_lnurldevicepayment
+
+from .crud import create_lnurldevicepayment, get_recent_lnurldevicepayment
+
 
 async def register_atm_payment(device, p):
     """
@@ -14,16 +17,30 @@ async def register_atm_payment(device, p):
     if lnurldevicepayment and lnurldevicepayment.payload == lnurldevicepayment.payhash:
         return None, None
     # If the payment is already registered and not been paid, return lnurlpayment record
-    elif lnurldevicepayment and lnurldevicepayment.payload != lnurldevicepayment.payhash:
+    elif (
+        lnurldevicepayment and lnurldevicepayment.payload != lnurldevicepayment.payhash
+    ):
         return lnurldevicepayment, None
     # else create a new lnurlpayment record
     else:
         data = base64.urlsafe_b64decode(p)
         decrypted = xor_decrypt(device.key.encode(), data)
-        price_msat = await fiat_amount_as_satoshis(float(decrypted[1]) / 100, device.currency) * 1000 if device.currency != "sat" else decrypted[1] * 1000
+        price_msat = (
+            await fiat_amount_as_satoshis(float(decrypted[1]) / 100, device.currency)
+            * 1000
+            if device.currency != "sat"
+            else decrypted[1] * 1000
+        )
         price_msat = int(price_msat * ((device.profit / 100) + 1))
-        lnurldevicepayment = await create_lnurldevicepayment(deviceid=device.id, payload=p, sats=price_msat / 1000, pin=decrypted[0], payhash="payment_hash")
+        lnurldevicepayment = await create_lnurldevicepayment(
+            deviceid=device.id,
+            payload=p,
+            sats=price_msat / 1000,
+            pin=decrypted[0],
+            payhash="payment_hash",
+        )
         return lnurldevicepayment, price_msat
+
 
 def xor_decrypt(key, blob):
     s = BytesIO(blob)

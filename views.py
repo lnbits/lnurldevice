@@ -1,24 +1,25 @@
-from http import HTTPStatus
 import base64
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.templating import Jinja2Templates
-from fastapi.responses import HTMLResponse
+from http import HTTPStatus
+from urllib.parse import parse_qs, urlparse
 
-from lnbits.core.crud import get_wallet, get_installed_extensions
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import HTMLResponse
+from fastapi.templating import Jinja2Templates
+from lnbits.core.crud import get_installed_extensions, get_wallet
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
-from lnbits.lnurl import decode as lnurl_decode
 from lnbits.helpers import template_renderer
+from lnbits.lnurl import decode as lnurl_decode
+from lnbits.lnurl import encode as lnurl_encode
+from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
+from loguru import logger
 
 from .crud import get_lnurldevice, get_lnurldevicepayment, get_recent_lnurldevicepayment
 from .helpers import xor_decrypt
-from urllib.parse import urlparse, parse_qs
-from loguru import logger
-from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
-from lnbits.lnurl import encode as lnurl_encode
 
 templates = Jinja2Templates(directory="templates")
 lnurldevice_generic_router = APIRouter()
+
 
 def lnurldevice_renderer():
     return template_renderer(["lnurldevice/templates"])
@@ -40,19 +41,25 @@ async def atmpage(request: Request, lightning: str):
     # Decode the lightning URL
     url = str(lnurl_decode(lightning))
     if not url:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Unable to decode lnurl.")
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Unable to decode lnurl."
+        )
 
     # Parse the URL to extract device ID and query parameters
     parsed_url = urlparse(url)
     device_id = parsed_url.path.split("/")[-1]
     device = await get_lnurldevice(device_id, request)
     if not device:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Unable to find device.")
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Unable to find device."
+        )
 
     # Extract and validate the 'p' parameter
     p = parse_qs(parsed_url.query).get("p", [None])[0]
     if p is None:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail="Missing 'p' parameter.")
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail="Missing 'p' parameter."
+        )
     # Adjust for base64 padding if necessary
     p += "=" * (-len(p) % 4)
 
@@ -72,14 +79,16 @@ async def atmpage(request: Request, lightning: str):
     # Check wallet and user access
     wallet = await get_wallet(device.wallet)
     if not wallet:
-        raise HTTPException(status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found.")
-    
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail="Wallet not found."
+        )
+
     # check if boltz payouts is enabled but also check the boltz extension is enabled
     access = False
     if device.extra == "boltz":
         installed_extensions = await get_installed_extensions(active=True)
         for extension in installed_extensions:
-            if extension.id == 'boltz' and extension.active:
+            if extension.id == "boltz" and extension.active:
                 access = True
                 logger.debug(access)
 
@@ -97,7 +106,12 @@ async def atmpage(request: Request, lightning: str):
             "boltz": True if access else False,
             "p": p,
             "recentpay": recentPayAttempt.id if recentPayAttempt else False,
-            "used": True if recentPayAttempt and recentPayAttempt.payload == recentPayAttempt.payhash else False,
+            "used": (
+                True
+                if recentPayAttempt
+                and recentPayAttempt.payload == recentPayAttempt.payhash
+                else False
+            ),
         },
     )
 
@@ -144,10 +158,16 @@ async def print_receipt(request: Request, payment_id):
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail="Unable to find device."
         )
-    
-    lnurl = lnurl_encode(str(request.url_for(
-        "lnurldevice.lnurl_v1_params", device_id=lnurldevicepayment.deviceid
-    )) + "?atm=1&p=" + lnurldevicepayment.payload)
+
+    lnurl = lnurl_encode(
+        str(
+            request.url_for(
+                "lnurldevice.lnurl_v1_params", device_id=lnurldevicepayment.deviceid
+            )
+        )
+        + "?atm=1&p="
+        + lnurldevicepayment.payload
+    )
     logger.debug(lnurl)
     return lnurldevice_renderer().TemplateResponse(
         "lnurldevice/atm_receipt.html",
