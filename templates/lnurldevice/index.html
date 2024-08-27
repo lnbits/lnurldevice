@@ -225,6 +225,7 @@
         </q-table>
       </q-card-section>
     </q-card>
+    </div>
 
     <div class="col-12 col-md-5 q-gutter-y-md">
       <q-card>
@@ -521,8 +522,7 @@
         <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </q-card>
     </q-dialog>
-  </div>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
-<script src="{{ url_for('static', filename='js/index.js') }}"></script>
+<script src="{{ url_for('lnurldevice_static', path='js/index.js') }}"></script>
 {% endblock %}
