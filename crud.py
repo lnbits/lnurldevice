@@ -4,7 +4,7 @@ from typing import List, Optional
 import shortuuid
 from fastapi import Request
 from lnbits.db import Database
-from lnbits.helpers import urlsafe_short_hash
+from lnbits.helpers import update_query, urlsafe_short_hash
 from lnurl import encode as lnurl_encode
 
 from .models import CreateLnurldevice, Lnurldevice, LnurldevicePayment
@@ -33,7 +33,11 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
             )
 
     await db.execute(
-        "INSERT INTO lnurldevice.lnurldevice (id, key, title, wallet, profit, currency, device, extra) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+        """
+        INSERT INTO lnurldevice.lnurldevice
+        (id, key, title, wallet, profit, currency, device, extra) VALUES
+        (?, ?, ?, ?, ?, ?, ?, ?)
+        """,
         (
             lnurldevice_id,
             lnurldevice_key,
@@ -109,7 +113,7 @@ async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurlde
 
     device = Lnurldevice(**row)
 
-    # this is needed for backwards compabtibility, before the LNURL were cached inside db
+    # this is needed for backward compatibility, before the LNURL were cached inside db
     if isinstance(device.extra, list):
         url = req.url_for("lnurldevice.lnurl_v2_params", device_id=device.id)
         for _extra in device.extra:
@@ -170,11 +174,6 @@ async def create_lnurldevicepayment(
     sats: Optional[int] = 0,
 ) -> LnurldevicePayment:
 
-    # TODO: ben what is this for?
-    # if device.device == "atm":
-    #     lnurldevicepayment_id = shortuuid.uuid(name=payload)
-    # else:
-
     lnurldevicepayment_id = urlsafe_short_hash()
     await db.execute(
         """
@@ -196,16 +195,13 @@ async def create_lnurldevicepayment(
 
 
 async def update_lnurldevicepayment(
-    lnurldevicepayment_id: str, **kwargs
+    lnurldevicepayment: LnurldevicePayment,
 ) -> LnurldevicePayment:
-    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
     await db.execute(
-        f"UPDATE lnurldevice.lnurldevicepayment SET {q} WHERE id = ?",
-        (*kwargs.values(), lnurldevicepayment_id),
+        update_query("lnurldevice.lnurldevicepayment", lnurldevicepayment),
+        (*lnurldevicepayment.dict().values(), lnurldevicepayment.id),
     )
-    dpayment = await get_lnurldevicepayment(lnurldevicepayment_id)
-    assert dpayment, "Couldnt retrieve update LnurldevicePayment"
-    return dpayment
+    return lnurldevicepayment
 
 
 async def get_lnurldevicepayment(
@@ -252,12 +248,13 @@ async def get_lnurlpayload(
     return LnurldevicePayment(**row) if row else None
 
 
-async def get_recent_lnurldevicepayment(
-    p: str,
-) -> Optional[LnurldevicePayment]:
+async def get_recent_lnurldevicepayment(payload: str) -> Optional[LnurldevicePayment]:
     row = await db.fetchone(
-        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE payload = ? ORDER BY timestamp DESC LIMIT 1",
-        (p,),
+        """
+        SELECT * FROM lnurldevice.lnurldevicepayment
+        WHERE payload = ? ORDER BY timestamp DESC LIMIT 1
+        """,
+        (payload,),
     )
     return LnurldevicePayment(**row) if row else None
 

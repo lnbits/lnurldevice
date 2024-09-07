@@ -1,5 +1,4 @@
 import json
-from sqlite3 import Row
 from typing import List, Optional, Union
 
 from lnurl.types import LnurlPayMetadata
@@ -35,10 +34,6 @@ class Lnurldevice(BaseModel):
     extra: Optional[Union[Json[List[LnurldeviceExtra]], str]]
     timestamp: str
 
-    @classmethod
-    def from_row(cls, row: Row) -> "Lnurldevice":
-        return cls(**dict(row))
-
     @property
     def lnurlpay_metadata(self) -> LnurlPayMetadata:
         return LnurlPayMetadata(json.dumps([["text/plain", self.title]]))
@@ -52,10 +47,6 @@ class LnurldevicePayment(BaseModel):
     pin: int
     sats: int
     timestamp: str
-
-    @classmethod
-    def from_row(cls, row: Row) -> "LnurldevicePayment":
-        return cls(**dict(row))
 
 
 class Lnurlencode(BaseModel):

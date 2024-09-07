@@ -4,20 +4,22 @@ from urllib.parse import parse_qs, urlparse
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from lnbits.core.crud import get_installed_extensions, get_wallet
+from lnbits.core.crud import (
+    get_installed_extensions,
+    get_standalone_payment,
+    get_wallet,
+)
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
 from lnbits.helpers import template_renderer
-from lnbits.lnurl import decode as lnurl_decode
-from lnbits.lnurl import encode as lnurl_encode
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
+from lnurl import decode as lnurl_decode
+from lnurl import encode as lnurl_encode
 from loguru import logger
 
 from .crud import get_lnurldevice, get_lnurldevicepayment, get_recent_lnurldevicepayment
 from .helpers import xor_decrypt
 
-templates = Jinja2Templates(directory="templates")
 lnurldevice_generic_router = APIRouter()
 
 
@@ -68,7 +70,9 @@ async def atmpage(request: Request, lightning: str):
         data = base64.urlsafe_b64decode(p)
         decrypted = xor_decrypt(device.key.encode(), data)
     except Exception as exc:
-        raise HTTPException(status_code=HTTPStatus.BAD_REQUEST, detail=str(exc))
+        raise HTTPException(
+            status_code=HTTPStatus.BAD_REQUEST, detail=f"{exc!s}"
+        ) from exc
 
     # Determine the price in msat
     if device.currency != "sat":
@@ -93,7 +97,7 @@ async def atmpage(request: Request, lightning: str):
                 logger.debug(access)
 
     # Attempt to get recent payment information
-    recentPayAttempt = await get_recent_lnurldevicepayment(p)
+    recent_pay_attempt = await get_recent_lnurldevicepayment(p)
 
     # Render the response template
     return lnurldevice_renderer().TemplateResponse(
@@ -105,11 +109,11 @@ async def atmpage(request: Request, lightning: str):
             "device_id": device.id,
             "boltz": True if access else False,
             "p": p,
-            "recentpay": recentPayAttempt.id if recentPayAttempt else False,
+            "recentpay": recent_pay_attempt.id if recent_pay_attempt else False,
             "used": (
                 True
-                if recentPayAttempt
-                and recentPayAttempt.payload == recentPayAttempt.payhash
+                if recent_pay_attempt
+                and recent_pay_attempt.payload == recent_pay_attempt.payhash
                 else False
             ),
         },
