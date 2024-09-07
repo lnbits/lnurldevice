@@ -2,7 +2,7 @@
   "name": "LNURLDevice",
   "short_description": "Hardware focused LNURL helper",
   "tile": "/lnurldevice/static/image/lnurldevice.png",
-  "min_lnbits_version": "0.12.6",
+  "min_lnbits_version": "1.0.0",
   "contributors": [
     {
       "name": "Ben Arc",

@@ -1,10 +1,11 @@
 import json
-from typing import List, Optional
+from datetime import datetime
+from typing import Optional
 
 import shortuuid
 from fastapi import Request
 from lnbits.db import Database
-from lnbits.helpers import urlsafe_short_hash
+from lnbits.helpers import insert_query, update_query, urlsafe_short_hash
 from lnurl import encode as lnurl_encode
 
 from .models import CreateLnurldevice, Lnurldevice, LnurldevicePayment
@@ -36,18 +37,18 @@ async def create_lnurldevice(data: CreateLnurldevice, req: Request) -> Lnurldevi
         """
         INSERT INTO lnurldevice.lnurldevice
         (id, key, title, wallet, profit, currency, device, switches)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (:id, :key, :title, :wallet, :profit, :currency, :device, :switches)
         """,
-        (
-            lnurldevice_id,
-            lnurldevice_key,
-            data.title,
-            data.wallet,
-            data.profit,
-            data.currency,
-            data.device,
-            json.dumps(data.switches, default=lambda x: x.dict()),
-        ),
+        {
+            "id": lnurldevice_id,
+            "key": lnurldevice_key,
+            "title": data.title,
+            "wallet": data.wallet,
+            "profit": data.profit,
+            "currency": data.currency,
+            "device": data.device,
+            "switches": json.dumps(data.switches, default=lambda x: x.dict()),
+        },
     )
 
     device = await get_lnurldevice(lnurldevice_id, req)
@@ -74,23 +75,23 @@ async def update_lnurldevice(
     await db.execute(
         """
         UPDATE lnurldevice.lnurldevice SET
-            title = ?,
-            wallet = ?,
-            profit = ?,
-            currency = ?,
-            device = ?,
-            switches = ?
-        WHERE id = ?
+            title = :title,
+            wallet = :wallet,
+            profit = :profit,
+            currency = :currency,
+            device = :device,
+            switches = :switches,
+        WHERE id = :id
         """,
-        (
-            data.title,
-            data.wallet,
-            data.profit,
-            data.currency,
-            data.device,
-            json.dumps(data.switches, default=lambda x: x.dict()),
-            lnurldevice_id,
-        ),
+        {
+            "id": lnurldevice_id,
+            "title": data.title,
+            "wallet": data.wallet,
+            "profit": data.profit,
+            "currency": data.currency,
+            "device": data.device,
+            "switches": json.dumps(data.switches, default=lambda x: x.dict()),
+        },
     )
     device = await get_lnurldevice(lnurldevice_id, req)
     assert device, "Lnurldevice was updated but could not be retrieved"
@@ -99,7 +100,7 @@ async def update_lnurldevice(
 
 async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurldevice]:
     row = await db.fetchone(
-        "SELECT * FROM lnurldevice.lnurldevice WHERE id = ?", (lnurldevice_id,)
+        "SELECT * FROM lnurldevice.lnurldevice WHERE id = :id", {"id": lnurldevice_id}
     )
     if not row:
         return None
@@ -123,15 +124,11 @@ async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurlde
     return device
 
 
-async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldevice]:
+async def get_lnurldevices(wallet_ids: list[str], req: Request) -> list[Lnurldevice]:
 
-    q = ",".join(["?"] * len(wallet_ids))
+    q = ",".join([f"'{w}'" for w in wallet_ids])
     rows = await db.fetchall(
-        f"""
-        SELECT * FROM lnurldevice.lnurldevice WHERE wallet IN ({q})
-        ORDER BY id
-        """,
-        (*wallet_ids,),
+        f"SELECT * FROM lnurldevice.lnurldevice WHERE wallet IN ({q}) ORDER BY id",
     )
 
     # this is needed for backwards compabtibility,
@@ -156,16 +153,17 @@ async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldev
 
 async def delete_lnurldevice(lnurldevice_id: str) -> None:
     await db.execute(
-        "DELETE FROM lnurldevice.lnurldevice WHERE id = ?", (lnurldevice_id,)
+        "DELETE FROM lnurldevice.lnurldevice WHERE id = :id",
+        {"id": lnurldevice_id},
     )
 
 
 async def create_lnurldevicepayment(
     deviceid: str,
-    payload: Optional[str] = None,
-    pin: Optional[str] = None,
-    payhash: Optional[str] = None,
-    sats: Optional[int] = 0,
+    payload: str,
+    pin: int,
+    payhash: str,
+    sats: int,
 ) -> LnurldevicePayment:
 
     # TODO: ben what is this for?
@@ -174,63 +172,53 @@ async def create_lnurldevicepayment(
     # else:
 
     lnurldevicepayment_id = urlsafe_short_hash()
-    await db.execute(
-        """
-        INSERT INTO lnurldevice.lnurldevicepayment (
-            id,
-            deviceid,
-            payload,
-            pin,
-            payhash,
-            sats
-        )
-        VALUES (?, ?, ?, ?, ?, ?)
-        """,
-        (lnurldevicepayment_id, deviceid, payload, pin, payhash, sats),
+    payment = LnurldevicePayment(
+        id=lnurldevicepayment_id,
+        deviceid=deviceid,
+        payload=payload,
+        pin=pin,
+        payhash=payhash,
+        sats=sats,
+        timestamp=datetime.now(),
     )
-    dpayment = await get_lnurldevicepayment(lnurldevicepayment_id)
-    assert dpayment, "Couldnt retrieve newly created LnurldevicePayment"
-    return dpayment
+    await db.execute(
+        insert_query("lnurldevice.lnurldevicepayment", payment),
+        payment.dict(),
+    )
+    return payment
 
 
-async def update_lnurldevicepayment(
-    lnurldevicepayment_id: str, **kwargs
-) -> LnurldevicePayment:
-    q = ", ".join([f"{field[0]} = ?" for field in kwargs.items()])
+async def update_lnurldevicepayment(payment: LnurldevicePayment) -> LnurldevicePayment:
     await db.execute(
-        f"UPDATE lnurldevice.lnurldevicepayment SET {q} WHERE id = ?",
-        (*kwargs.values(), lnurldevicepayment_id),
+        update_query("lnurldevice.lnurldevicepayment", payment),
+        payment.dict(),
     )
-    dpayment = await get_lnurldevicepayment(lnurldevicepayment_id)
-    assert dpayment, "Couldnt retrieve update LnurldevicePayment"
-    return dpayment
+    return payment
 
 
 async def get_lnurldevicepayment(
     lnurldevicepayment_id: str,
 ) -> Optional[LnurldevicePayment]:
     row = await db.fetchone(
-        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE id = ?",
-        (lnurldevicepayment_id,),
+        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE id = :id",
+        {"id": lnurldevicepayment_id},
     )
     return LnurldevicePayment(**row) if row else None
 
 
 async def get_lnurldevicepayment_by_p(
-    p: str,
+    payment_hash: str,
 ) -> Optional[LnurldevicePayment]:
     row = await db.fetchone(
-        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE payhash = ?",
-        (p,),
+        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE payhash = :hash",
+        {"hash": payment_hash},
     )
     return LnurldevicePayment(**row) if row else None
 
 
-async def get_lnurlpayload(
-    lnurldevicepayment_payload: str,
-) -> Optional[LnurldevicePayment]:
+async def get_lnurlpayload(payload: str) -> Optional[LnurldevicePayment]:
     row = await db.fetchone(
-        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE payload = ?",
-        (lnurldevicepayment_payload,),
+        "SELECT * FROM lnurldevice.lnurldevicepayment WHERE payload = :payload",
+        {"payload": payload},
     )
     return LnurldevicePayment(**row) if row else None

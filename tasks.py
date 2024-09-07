@@ -27,9 +27,8 @@ async def on_invoice_paid(payment: Payment) -> None:
         if lnurldevicepayment.payhash == "used":
             return
 
-        lnurldevicepayment = await update_lnurldevicepayment(
-            lnurldevicepayment_id=payment.extra["id"], payhash="used"
-        )
+        lnurldevicepayment.payhash = "used"
+        await update_lnurldevicepayment(lnurldevicepayment)
         comment = payment.extra["comment"]
         variable = False
         if payment.extra["variable"] == "True":
