@@ -143,7 +143,7 @@ async def lnurl_params(
             deviceid=device.id,
             payload=duration,
             sats=price_msat,
-            pin=pin,
+            pin=int(pin),
             payhash="bla",
         )
         if not lnurldevicepayment:
@@ -195,7 +195,7 @@ async def lnurl_params(
                 deviceid=device.id,
                 payload=p,
                 sats=price_msat * 1000,
-                pin=pin,
+                pin=int(pin),
                 payhash="payment_hash",
             )
         except Exception:
@@ -222,7 +222,7 @@ async def lnurl_params(
         deviceid=device.id,
         payload=p,
         sats=price_msat * 1000,
-        pin=pin,
+        pin=int(pin),
         payhash="payment_hash",
     )
     if not lnurldevicepayment:
@@ -284,14 +284,12 @@ async def lnurl_callback(
             if lnurldevicepayment.payhash != "payment_hash":
                 return {"status": "ERROR", "reason": "Payment already claimed"}
             try:
-                lnurldevicepayment_updated = await update_lnurldevicepayment(
-                    lnurldevicepayment_id=paymentid, payhash=lnurldevicepayment.payload
-                )
-                assert lnurldevicepayment_updated
+                lnurldevicepayment.payhash = lnurldevicepayment.payload
+                await update_lnurldevicepayment(lnurldevicepayment)
                 await pay_invoice(
                     wallet_id=device.wallet,
                     payment_request=pr,
-                    max_sat=int(lnurldevicepayment_updated.sats / 1000),
+                    max_sat=int(lnurldevicepayment.sats / 1000),
                     extra={"tag": "withdraw"},
                 )
             except Exception:
@@ -322,9 +320,8 @@ async def lnurl_callback(
             },
         )
 
-        lnurldevicepayment = await update_lnurldevicepayment(
-            lnurldevicepayment_id=paymentid, payhash=payment_hash
-        )
+        lnurldevicepayment.payhash = payment_hash
+        await update_lnurldevicepayment(lnurldevicepayment)
         resp = {
             "pr": payment_request,
             "successAction": {
@@ -343,9 +340,8 @@ async def lnurl_callback(
         unhashed_description=device.lnurlpay_metadata.encode(),
         extra={"tag": "PoS"},
     )
-    lnurldevicepayment = await update_lnurldevicepayment(
-        lnurldevicepayment_id=paymentid, payhash=payment_hash
-    )
+    lnurldevicepayment.payhash = payment_hash
+    await update_lnurldevicepayment(lnurldevicepayment)
 
     return {
         "pr": payment_request,

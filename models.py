@@ -1,5 +1,5 @@
 import json
-from sqlite3 import Row
+from datetime import datetime
 from typing import List, Optional
 
 from lnurl.types import LnurlPayMetadata
@@ -33,11 +33,7 @@ class Lnurldevice(BaseModel):
     currency: str
     device: str
     switches: Optional[Json[List[LnurldeviceSwitch]]]
-    timestamp: str
-
-    @classmethod
-    def from_row(cls, row: Row) -> "Lnurldevice":
-        return cls(**dict(row))
+    timestamp: datetime
 
     @property
     def lnurlpay_metadata(self) -> LnurlPayMetadata:
@@ -51,8 +47,4 @@ class LnurldevicePayment(BaseModel):
     payload: str
     pin: int
     sats: int
-    timestamp: str
-
-    @classmethod
-    def from_row(cls, row: Row) -> "LnurldevicePayment":
-        return cls(**dict(row))
+    timestamp: datetime

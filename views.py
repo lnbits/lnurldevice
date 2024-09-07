@@ -2,7 +2,6 @@ from http import HTTPStatus
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
 from lnbits.core.crud import get_standalone_payment
 from lnbits.core.models import User
 from lnbits.decorators import check_user_exists
@@ -10,7 +9,6 @@ from lnbits.helpers import template_renderer
 
 from .crud import get_lnurldevice, get_lnurldevicepayment
 
-templates = Jinja2Templates(directory="templates")
 lnurldevice_generic_router = APIRouter()
 
 
