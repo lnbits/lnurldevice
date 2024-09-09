@@ -4,6 +4,7 @@ from http import HTTPStatus
 import bolt11
 from fastapi import APIRouter, HTTPException, Query, Request
 from lnbits.core.services import create_invoice
+from lnbits.core.crud import get_wallet
 from lnbits.core.views.api import pay_invoice
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
@@ -218,6 +219,12 @@ async def lnurl_callback(
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail="Not valid payment request"
             )
+        wallet = await get_wallet(device.wallet)
+        assert wallet
+        if wallet.balance_msat  < (int(lnurldevicepayment.sats / 1000) + 100):
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Not enough funds"
+            )
         else:
             if lnurldevicepayment.payload != k1:
                 return {"status": "ERROR", "reason": "Bad K1"}
@@ -233,11 +240,13 @@ async def lnurl_callback(
                     max_sat=int(lnurldevicepayment_updated.sats / 1000),
                     extra={"tag": "withdraw"},
                 )
-            except Exception:
-                return {
-                    "status": "ERROR",
-                    "reason": "Payment failed, use a different wallet.",
-                }
+            except Exception as exc:
+                lnurldevicepayment.payhash = "payment_hash"
+                lnurldevicepayment_updated = await update_lnurldevicepayment(lnurldevicepayment)
+                assert lnurldevicepayment_updated
+                raise HTTPException(
+                    status_code=HTTPStatus.FORBIDDEN, detail="Failed to make payment"
+                ) from exc
             return {"status": "OK"}
     if device.device == "switch":
         if not amount:
