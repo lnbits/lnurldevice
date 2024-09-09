@@ -221,7 +221,7 @@ async def lnurl_callback(
             )
         wallet = await get_wallet(device.wallet)
         assert wallet
-        if wallet.balance_msat  < (int(lnurldevicepayment.sats / 1000) + 100):
+        if wallet.balance_msat < (int(lnurldevicepayment.sats / 1000) + 100):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail="Not enough funds"
             )
@@ -232,7 +232,9 @@ async def lnurl_callback(
                 return {"status": "ERROR", "reason": "Payment already claimed"}
             try:
                 lnurldevicepayment.payhash = lnurldevicepayment.payload
-                lnurldevicepayment_updated = await update_lnurldevicepayment(lnurldevicepayment)
+                lnurldevicepayment_updated = await update_lnurldevicepayment(
+                    lnurldevicepayment
+                )
                 assert lnurldevicepayment_updated
                 await pay_invoice(
                     wallet_id=device.wallet,
@@ -242,7 +244,9 @@ async def lnurl_callback(
                 )
             except Exception as exc:
                 lnurldevicepayment.payhash = "payment_hash"
-                lnurldevicepayment_updated = await update_lnurldevicepayment(lnurldevicepayment)
+                lnurldevicepayment_updated = await update_lnurldevicepayment(
+                    lnurldevicepayment
+                )
                 assert lnurldevicepayment_updated
                 raise HTTPException(
                     status_code=HTTPStatus.FORBIDDEN, detail="Failed to make payment"
