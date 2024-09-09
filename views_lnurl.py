@@ -157,7 +157,7 @@ async def lnurl_params(
             "k1": p,
             "minWithdrawable": price_msat,
             "maxWithdrawable": price_msat,
-            "defaultDescription": f"{device.title} - pin: {lnurldevicepayment.pin}",
+            "defaultDescription": f"{device.title} ID: {lnurldevicepayment.id}",
         }
     price_msat = int(price_msat * ((device.profit / 100) + 1))
 
@@ -286,6 +286,7 @@ async def lnurl_callback(
         unhashed_description=device.lnurlpay_metadata.encode(),
         extra={"tag": "PoS"},
     )
+    lnurldevicepayment.payhash = payment_hash
     lnurldevicepayment = await update_lnurldevicepayment(lnurldevicepayment)
 
     return {
