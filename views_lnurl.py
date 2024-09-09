@@ -224,9 +224,8 @@ async def lnurl_callback(
             if lnurldevicepayment.payhash != "payment_hash":
                 return {"status": "ERROR", "reason": "Payment already claimed"}
             try:
-                lnurldevicepayment_updated = await update_lnurldevicepayment(
-                    lnurldevicepayment_id=paymentid, payhash=lnurldevicepayment.payload
-                )
+                lnurldevicepayment.payhash = lnurldevicepayment.payload
+                lnurldevicepayment_updated = await update_lnurldevicepayment(lnurldevicepayment)
                 assert lnurldevicepayment_updated
                 await pay_invoice(
                     wallet_id=device.wallet,
@@ -259,9 +258,7 @@ async def lnurl_callback(
             },
         )
 
-        lnurldevicepayment = await update_lnurldevicepayment(
-            lnurldevicepayment_id=paymentid, payhash=payment_hash
-        )
+        lnurldevicepayment = await update_lnurldevicepayment(lnurldevicepayment)
         resp = {
             "pr": payment_request,
             "successAction": {
@@ -280,9 +277,7 @@ async def lnurl_callback(
         unhashed_description=device.lnurlpay_metadata.encode(),
         extra={"tag": "PoS"},
     )
-    lnurldevicepayment = await update_lnurldevicepayment(
-        lnurldevicepayment_id=paymentid, payhash=payment_hash
-    )
+    lnurldevicepayment = await update_lnurldevicepayment(lnurldevicepayment)
 
     return {
         "pr": payment_request,
