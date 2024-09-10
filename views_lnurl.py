@@ -116,8 +116,8 @@ async def lnurl_params(
                     "lnurldevice.lnurl_callback",
                     paymentid=lnurldevicepayment.id,
                 )
-                + f"?variable={variable}",
-            ),
+            )
+            + f"?variable={variable}",
             "minSendable": price_msat,
             "maxSendable": price_msat,
             "metadata": device.lnurlpay_metadata,
