@@ -87,18 +87,18 @@ async def lnurl_params(
 
         # Check they're not trying to trick the switch!
         check = False
-        if device.extra and "atm" not in device.extra:
-            for extra in device.extra:
+        if device.switches:
+            for switch in device.switches:
                 if (
-                    extra.pin == int(pin)
-                    and extra.duration == int(duration)
-                    and bool(extra.variable) == bool(variable)
-                    and bool(extra.comment) == bool(comment)
+                    switch.pin == int(pin)
+                    and switch.duration == int(duration)
+                    and bool(switch.variable) == bool(variable)
+                    and bool(switch.comment) == bool(comment)
                 ):
                     check = True
                     continue
         if not check:
-            return {"status": "ERROR", "reason": "Extra params wrong"}
+            return {"status": "ERROR", "reason": "Switch params wrong"}
 
         lnurldevicepayment = await create_lnurldevicepayment(
             deviceid=device.id,
