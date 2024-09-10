@@ -225,303 +225,299 @@
         </q-table>
       </q-card-section>
     </q-card>
-    </div>
+  </div>
 
-    <div class="col-12 col-md-5 q-gutter-y-md">
-      <q-card>
-        <q-card-section>
-          <h6 class="text-subtitle1 q-my-none">
-            {{SITE_TITLE}} LNURLDevice Extension (0.4)
-          </h6>
-        </q-card-section>
-        <q-separator></q-separator>
-        <q-card-section>
-          <p>
-            For LNURL based Points of Sale, ATMs, and relay devices<br />
-            LNPoS:
-            <a class="text-secondary" href="https://lnbits.github.io/lnpos">
-              https://lnbits.github.io/lnpos</a
-            ><br />
-            bitcoinSwitch:
-            <a
-              class="text-secondary"
-              href="https://github.com/lnbits/bitcoinSwitch"
-            >
-              https://github.com/lnbits/bitcoinSwitch</a
-            ><br />
-            FOSSA:
-            <a class="text-secondary" href="https://github.com/lnbits/fossa">
-              https://github.com/lnbits/fossa</a
-            ><br />
-            <small>
-              Created by,
-              <a class="text-secondary" href="https://github.com/benarc"
-                >Ben Arc</a
-              >,
-              <a class="text-secondary" href="https://github.com/blackcoffeexbt"
-                >BC</a
-              >,
-              <a class="text-secondary" href="https://github.com/motorina0"
-                >Vlad Stan</a
-              >,
-              <a class="text-secondary" href="https://github.com/dni">dni</a>
-            </small>
-          </p>
-          <p class="text-warning">
-            WARNING: updating the switches amount, duration or pin will change
-            the QR code.
-          </p>
-        </q-card-section>
-      </q-card>
-    </div>
-
-    <q-dialog
-      v-model="settingsDialog.show"
-      deviceition="top"
-      @hide="closeFormDialog"
-    >
-      <q-card
-        style="width: 700px; max-width: 80vw"
-        class="q-pa-lg q-pt-xl lnbits__dialog-card"
-      >
-        <div class="text-h6">LNURLDevice device string</div>
-        <center>
-          <q-btn
-            v-if="settingsDialog.data.device == 'switch'"
-            dense
-            outline
-            unelevated
-            color="primary"
-            size="md"
-            @click="copyText(wslocation + '/api/v1/ws/' + settingsDialog.data.id, 'Link copied to clipboard!')"
+  <div class="col-12 col-md-5 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <h6 class="text-subtitle1 q-my-none">
+          {{SITE_TITLE}} LNURLDevice Extension (0.4)
+        </h6>
+      </q-card-section>
+      <q-separator></q-separator>
+      <q-card-section>
+        <p>
+          For LNURL based Points of Sale, ATMs, and relay devices<br />
+          LNPoS:
+          <a class="text-secondary" href="https://lnbits.github.io/lnpos">
+            https://lnbits.github.io/lnpos</a
+          ><br />
+          bitcoinSwitch:
+          <a
+            class="text-secondary"
+            href="https://github.com/lnbits/bitcoinSwitch"
           >
-            {% raw %}{{wslocation}}/api/v1/ws/{{settingsDialog.data.id}}{%
-            endraw %}<q-tooltip> Click to copy URL </q-tooltip>
-          </q-btn>
-          <q-btn
-            v-else
-            dense
-            outline
-            unelevated
-            color="primary"
-            size="md"
-            @click="copyText(location + '/lnurldevice/api/v1/lnurl/' + settingsDialog.data.id + ',' + settingsDialog.data.key + ',' + settingsDialog.data.currency, 'Link copied to clipboard!')"
-          >
-            {% raw
-            %}{{location}}/lnurldevice/api/v1/lnurl/{{settingsDialog.data.id}},
-            {{settingsDialog.data.key}}, {{settingsDialog.data.currency}}{%
-            endraw %}
-            <q-tooltip> Click to copy URL </q-tooltip>
-          </q-btn>
-        </center>
-        <div class="text-subtitle2">
-          <small> </small>
-        </div>
-      </q-card>
-    </q-dialog>
+            https://github.com/lnbits/bitcoinSwitch</a
+          ><br />
+          FOSSA:
+          <a class="text-secondary" href="https://github.com/lnbits/fossa">
+            https://github.com/lnbits/fossa</a
+          ><br />
+          <small>
+            Created by,
+            <a class="text-secondary" href="https://github.com/benarc"
+              >Ben Arc</a
+            >,
+            <a class="text-secondary" href="https://github.com/blackcoffeexbt"
+              >BC</a
+            >,
+            <a class="text-secondary" href="https://github.com/motorina0"
+              >Vlad Stan</a
+            >,
+            <a class="text-secondary" href="https://github.com/dni">dni</a>
+          </small>
+        </p>
+        <p class="text-warning">
+          WARNING: updating the switches amount, duration or pin will change the
+          QR code.
+        </p>
+      </q-card-section>
+    </q-card>
+  </div>
 
-    <q-dialog
-      v-model="formDialoglnurldevice.show"
-      deviceition="top"
-      @hide="closeFormDialog"
+  <q-dialog
+    v-model="settingsDialog.show"
+    deviceition="top"
+    @hide="closeFormDialog"
+  >
+    <q-card
+      style="width: 700px; max-width: 80vw"
+      class="q-pa-lg q-pt-xl lnbits__dialog-card"
     >
-      <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
-        <q-form @submit="sendFormDatalnurldevice" class="q-gutter-md">
-          <h5
-            v-html="formDialoglnurldevice.data.device"
-            v-if="formDialoglnurldevice.data.id"
-          ></h5>
-          <q-input
-            filled
-            dense
-            v-model.trim="formDialoglnurldevice.data.title"
-            type="text"
-            label="Title"
-          ></q-input>
-          <q-select
-            filled
-            dense
-            emit-value
-            v-model="formDialoglnurldevice.data.wallet"
-            :options="g.user.walletOptions"
-            label="Wallet *"
-          ></q-select>
-          <q-select
-            filled
-            dense
-            v-model.trim="formDialoglnurldevice.data.currency"
-            type="text"
-            label="Fiat currency for device"
-            :options="currency"
-          ></q-select>
-          <q-option-group
-            v-if="!formDialoglnurldevice.data.id"
-            v-model.trim="formDialoglnurldevice.data.device"
-            :options="devices"
+      <div class="text-h6">LNURLDevice device string</div>
+      <center>
+        <q-btn
+          v-if="settingsDialog.data.device == 'switch'"
+          dense
+          outline
+          unelevated
+          color="primary"
+          size="md"
+          @click="copyText(wslocation + '/api/v1/ws/' + settingsDialog.data.id, 'Link copied to clipboard!')"
+        >
+          {% raw %}{{wslocation}}/api/v1/ws/{{settingsDialog.data.id}}{% endraw
+          %}<q-tooltip> Click to copy URL </q-tooltip>
+        </q-btn>
+        <q-btn
+          v-else
+          dense
+          outline
+          unelevated
+          color="primary"
+          size="md"
+          @click="copyText(location + '/lnurldevice/api/v1/lnurl/' + settingsDialog.data.id + ',' + settingsDialog.data.key + ',' + settingsDialog.data.currency, 'Link copied to clipboard!')"
+        >
+          {% raw
+          %}{{location}}/lnurldevice/api/v1/lnurl/{{settingsDialog.data.id}},
+          {{settingsDialog.data.key}}, {{settingsDialog.data.currency}}{% endraw
+          %}
+          <q-tooltip> Click to copy URL </q-tooltip>
+        </q-btn>
+      </center>
+      <div class="text-subtitle2">
+        <small> </small>
+      </div>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog
+    v-model="formDialoglnurldevice.show"
+    deviceition="top"
+    @hide="closeFormDialog"
+  >
+    <q-card class="q-pa-lg q-pt-xl lnbits__dialog-card">
+      <q-form @submit="sendFormDatalnurldevice" class="q-gutter-md">
+        <h5
+          v-html="formDialoglnurldevice.data.device"
+          v-if="formDialoglnurldevice.data.id"
+        ></h5>
+        <q-input
+          filled
+          dense
+          v-model.trim="formDialoglnurldevice.data.title"
+          type="text"
+          label="Title"
+        ></q-input>
+        <q-select
+          filled
+          dense
+          emit-value
+          v-model="formDialoglnurldevice.data.wallet"
+          :options="g.user.walletOptions"
+          label="Wallet *"
+        ></q-select>
+        <q-select
+          filled
+          dense
+          v-model.trim="formDialoglnurldevice.data.currency"
+          type="text"
+          label="Fiat currency for device"
+          :options="currency"
+        ></q-select>
+        <q-option-group
+          v-if="!formDialoglnurldevice.data.id"
+          v-model.trim="formDialoglnurldevice.data.device"
+          :options="devices"
+          color="primary"
+          label="Type of device"
+          @input="formDialoglnurldevice.data.extra = []"
+        ></q-option-group>
+        <q-input
+          v-if="formDialoglnurldevice.data.device != 'switch'"
+          filled
+          dense
+          v-model.trim="formDialoglnurldevice.data.profit"
+          type="number"
+          max="90"
+          label="Profit margin (% added to invoices/deducted from faucets)"
+        ></q-input>
+        <div v-else>
+          <q-btn
+            unelevated
+            class="q-mb-lg"
+            round
+            size="sm"
+            icon="add"
+            @click="addSwitch"
+            v-model="formDialoglnurldevice.data.extra"
             color="primary"
-            label="Type of device"
-            @input="formDialoglnurldevice.data.extra = []"
-          ></q-option-group>
-          <q-input
-            v-if="formDialoglnurldevice.data.device != 'switch'"
-            filled
-            dense
-            v-model.trim="formDialoglnurldevice.data.profit"
-            type="number"
-            max="90"
-            label="Profit margin (% added to invoices/deducted from faucets)"
-          ></q-input>
-          <div v-else>
-            <q-btn
-              unelevated
-              class="q-mb-lg"
-              round
-              size="sm"
-              icon="add"
-              @click="addSwitch"
-              v-model="formDialoglnurldevice.data.extra"
-              color="primary"
-            ></q-btn>
-            <q-btn
-              unelevated
-              class="q-mb-lg"
-              round
-              size="sm"
-              icon="remove"
-              @click="removeSwitch"
-              v-model="formDialoglnurldevice.data.extra"
-              color="primary"
-            ></q-btn>
-            <div v-for="_switch in formDialoglnurldevice.data.extra">
-              <div class="row">
-                <div class="col">
-                  <q-input
-                    ref="setAmount"
-                    filled
-                    dense
-                    v-model.trim="_switch.amount"
-                    class="q-pb-md"
-                    :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
-                  ></q-input>
-                </div>
-                <div class="col q-ml-md">
-                  <q-input
-                    filled
-                    dense
-                    v-model.trim="_switch.duration"
-                    type="number"
-                    label="duration (ms)"
-                  ></q-input>
-                </div>
-                <div class="col q-ml-md">
-                  <q-input
-                    filled
-                    dense
-                    v-model.trim="_switch.pin"
-                    type="number"
-                    label="GPIO pin"
-                  ></q-input>
-                </div>
-                <div class="col q-ml-md">
-                  <q-checkbox
-                    v-model="_switch.variable"
-                    color="primary"
-                    label="Variable"
-                    size="xs"
-                    dense
-                    ><q-tooltip
-                      >Variable time (Amount * Duration)</q-tooltip
-                    ></q-checkbox
-                  >
-                  <q-checkbox
-                    v-model="_switch.comment"
-                    color="primary"
-                    label="Comment"
-                    size="xs"
-                    dense
-                  >
-                    <q-tooltip>Enable LNURLp comments with payments</q-tooltip>
-                  </q-checkbox>
-                </div>
+          ></q-btn>
+          <q-btn
+            unelevated
+            class="q-mb-lg"
+            round
+            size="sm"
+            icon="remove"
+            @click="removeSwitch"
+            v-model="formDialoglnurldevice.data.extra"
+            color="primary"
+          ></q-btn>
+          <div v-for="_switch in formDialoglnurldevice.data.extra">
+            <div class="row">
+              <div class="col">
+                <q-input
+                  ref="setAmount"
+                  filled
+                  dense
+                  v-model.trim="_switch.amount"
+                  class="q-pb-md"
+                  :label="'Amount (' + formDialoglnurldevice.data.currency + ') *'"
+                ></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-input
+                  filled
+                  dense
+                  v-model.trim="_switch.duration"
+                  type="number"
+                  label="duration (ms)"
+                ></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-input
+                  filled
+                  dense
+                  v-model.trim="_switch.pin"
+                  type="number"
+                  label="GPIO pin"
+                ></q-input>
+              </div>
+              <div class="col q-ml-md">
+                <q-checkbox
+                  v-model="_switch.variable"
+                  color="primary"
+                  label="Variable"
+                  size="xs"
+                  dense
+                  ><q-tooltip
+                    >Variable time (Amount * Duration)</q-tooltip
+                  ></q-checkbox
+                >
+                <q-checkbox
+                  v-model="_switch.comment"
+                  color="primary"
+                  label="Comment"
+                  size="xs"
+                  dense
+                >
+                  <q-tooltip>Enable LNURLp comments with payments</q-tooltip>
+                </q-checkbox>
               </div>
             </div>
           </div>
-          <q-toggle
-            v-if="formDialoglnurldevice.data.device == 'atm'"
-            :label="boltzToggleState ? 'Onchain/liquid support enabled (boltz ext must be enabled)' : 'Onchain/liquid support disabled'"
-            v-model="boltzToggleState"
-            @input="handleBoltzToggleChange"
-          ></q-toggle>
-          <div class="row q-mt-lg">
-            <q-btn
-              v-if="formDialoglnurldevice.data.id"
-              unelevated
-              color="primary"
-              :disable=" formDialoglnurldevice.data.title == ''"
-              type="submit"
-              >Update lnurldevice</q-btn
-            >
-            <q-btn
-              v-else
-              unelevated
-              color="primary"
-              :disable="formDialoglnurldevice.data.title == ''"
-              type="submit"
-              >Create lnurldevice</q-btn
-            >
-            <q-btn
-              @click="cancellnurldevice"
-              flat
-              color="grey"
-              class="q-ml-auto"
-              >Cancel</q-btn
-            >
-          </div>
-        </q-form>
-      </q-card>
-    </q-dialog>
-
-    <q-dialog v-model="qrCodeDialog.show" position="top">
-      <q-card v-if="qrCodeDialog.data" class="q-pa-lg lnbits__dialog-card">
-        <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
-          <qrcode
-            :value="'lightning:' + lnurlValue"
-            :options="{width: 800}"
-            class="rounded-borders"
-          ></qrcode>
-        </q-responsive>
-        <q-btn
-          outline
-          color="grey"
-          @click="copyText(lnurlValue, 'LNURL copied to clipboard!')"
-          >Copy LNURL</q-btn
-        >
-        <q-chip
-          v-if="websocketMessage == 'WebSocket NOT supported by your Browser!' || websocketMessage == 'Connection closed'"
-          clickable
-          color="red"
-          text-color="white"
-          icon="error"
-        >
-          {% raw %}{{ wsMessage }}{% endraw %}
-        </q-chip>
-        <q-chip v-else clickable color="green" text-color="white" icon="check"
-          >{% raw %}{{ wsMessage }}{% endraw %}</q-chip
-        >
-        <br />
-        <div class="row q-mt-lg q-gutter-sm">
-          <div v-if="formDialoglnurldevice.data.extra !== 'boltz'"></div>
-          <q-btn
-            v-for="_switch in qrCodeDialog.data.extra"
-            outline
-            color="primary"
-            @click="lnurlValue = _switch.lnurl"
-            :label="'Switch pin:' + _switch.pin + ' (' + _switch.duration + ' ms)'"
-          ></q-btn>
         </div>
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
-      </q-card>
-    </q-dialog>
+        <q-toggle
+          v-if="formDialoglnurldevice.data.device == 'atm'"
+          :label="boltzToggleState ? 'Onchain/liquid support enabled (boltz ext must be enabled)' : 'Onchain/liquid support disabled'"
+          v-model="boltzToggleState"
+          @input="handleBoltzToggleChange"
+        ></q-toggle>
+        <div class="row q-mt-lg">
+          <q-btn
+            v-if="formDialoglnurldevice.data.id"
+            unelevated
+            color="primary"
+            :disable=" formDialoglnurldevice.data.title == ''"
+            type="submit"
+            >Update lnurldevice</q-btn
+          >
+          <q-btn
+            v-else
+            unelevated
+            color="primary"
+            :disable="formDialoglnurldevice.data.title == ''"
+            type="submit"
+            >Create lnurldevice</q-btn
+          >
+          <q-btn @click="cancellnurldevice" flat color="grey" class="q-ml-auto"
+            >Cancel</q-btn
+          >
+        </div>
+      </q-form>
+    </q-card>
+  </q-dialog>
+
+  <q-dialog v-model="qrCodeDialog.show" position="top">
+    <q-card v-if="qrCodeDialog.data" class="q-pa-lg lnbits__dialog-card">
+      <q-responsive :ratio="1" class="q-mx-xl q-mb-md">
+        <qrcode
+          :value="'lightning:' + lnurlValue"
+          :options="{width: 800}"
+          class="rounded-borders"
+        ></qrcode>
+      </q-responsive>
+      <q-btn
+        outline
+        color="grey"
+        @click="copyText(lnurlValue, 'LNURL copied to clipboard!')"
+        >Copy LNURL</q-btn
+      >
+      <q-chip
+        v-if="websocketMessage == 'WebSocket NOT supported by your Browser!' || websocketMessage == 'Connection closed'"
+        clickable
+        color="red"
+        text-color="white"
+        icon="error"
+      >
+        {% raw %}{{ wsMessage }}{% endraw %}
+      </q-chip>
+      <q-chip v-else clickable color="green" text-color="white" icon="check"
+        >{% raw %}{{ wsMessage }}{% endraw %}</q-chip
+      >
+      <br />
+      <div class="row q-mt-lg q-gutter-sm">
+        <div v-if="formDialoglnurldevice.data.extra !== 'boltz'"></div>
+        <q-btn
+          v-for="_switch in qrCodeDialog.data.extra"
+          outline
+          color="primary"
+          @click="lnurlValue = _switch.lnurl"
+          :label="'Switch pin:' + _switch.pin + ' (' + _switch.duration + ' ms)'"
+        ></q-btn>
+      </div>
+      <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
+    </q-card>
+  </q-dialog>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
 <script src="{{ url_for('lnurldevice_static', path='js/index.js') }}"></script>

@@ -3,8 +3,8 @@ from http import HTTPStatus
 
 import bolt11
 from fastapi import APIRouter, HTTPException, Query, Request
-from lnbits.core.services import create_invoice
 from lnbits.core.crud import get_wallet
+from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice
 from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
@@ -122,9 +122,9 @@ async def lnurl_params(
             "maxSendable": price_msat,
             "metadata": device.lnurlpay_metadata,
         }
-        if comment == True:
+        if comment:
             resp["commentAllowed"] = 1500
-        if variable == True:
+        if variable:
             resp["maxSendable"] = price_msat * 360
         return resp
 
@@ -259,7 +259,7 @@ async def lnurl_callback(
         payment_hash, payment_request = await create_invoice(
             wallet_id=device.wallet,
             amount=int(amount / 1000),
-            memo=f"{device.id} pin {lnurldevicepayment.pin} ({lnurldevicepayment.payload} ms)",
+            memo=f"{device.title} ({lnurldevicepayment.payload} ms)",
             unhashed_description=device.lnurlpay_metadata.encode(),
             extra={
                 "tag": "Switch",
