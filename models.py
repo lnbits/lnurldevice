@@ -1,12 +1,11 @@
 import json
-from sqlite3 import Row
-from typing import List, Optional
+from typing import List, Optional, Union
 
 from lnurl.types import LnurlPayMetadata
 from pydantic import BaseModel, Json
 
 
-class LnurldeviceSwitch(BaseModel):
+class LnurldeviceExtra(BaseModel):
     amount: float = 0.0
     duration: int = 0
     pin: int = 0
@@ -21,7 +20,7 @@ class CreateLnurldevice(BaseModel):
     currency: str
     device: str
     profit: float
-    switches: Optional[List[LnurldeviceSwitch]]
+    extra: Optional[Union[List[LnurldeviceExtra], str]]
 
 
 class Lnurldevice(BaseModel):
@@ -32,12 +31,8 @@ class Lnurldevice(BaseModel):
     profit: float
     currency: str
     device: str
-    switches: Optional[Json[List[LnurldeviceSwitch]]]
+    extra: Optional[Union[Json[List[LnurldeviceExtra]], str]]
     timestamp: str
-
-    @classmethod
-    def from_row(cls, row: Row) -> "Lnurldevice":
-        return cls(**dict(row))
 
     @property
     def lnurlpay_metadata(self) -> LnurlPayMetadata:
@@ -53,6 +48,6 @@ class LnurldevicePayment(BaseModel):
     sats: int
     timestamp: str
 
-    @classmethod
-    def from_row(cls, row: Row) -> "LnurldevicePayment":
-        return cls(**dict(row))
+
+class Lnurlencode(BaseModel):
+    url: str

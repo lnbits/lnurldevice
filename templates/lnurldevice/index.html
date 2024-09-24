@@ -132,6 +132,95 @@
               </q-td>
             </q-tr>
           </template>
+        </q-table>
+      </q-card-section>
+    </q-card>
+
+    <q-card v-if="atmLinks.length > 0">
+      <q-card-section>
+        <div class="row items-center no-wrap q-mb-md">
+          <div class="col">
+            <h5 class="text-subtitle1 q-my-none">ATM Payments</h5>
+          </div>
+
+          <div class="col-auto">
+            <q-input
+              borderless
+              dense
+              debounce="300"
+              v-model="filter"
+              placeholder="Search"
+            >
+              <template v-slot:append>
+                <q-icon name="search"></q-icon>
+              </template>
+            </q-input>
+            <q-btn flat color="grey" @click="exportATMCSV">Export to CSV</q-btn>
+          </div>
+        </div>
+        <q-table
+          flat
+          dense
+          :data="atmLinks"
+          row-key="id"
+          :columns="atmTable.columns"
+          :pagination.sync="atmTable.pagination"
+          :filter="filter"
+        >
+          <template v-slot:header="props">
+            <q-tr :props="props">
+              <q-th style="width: 5%"></q-th>
+              <q-th style="width: 5%"></q-th>
+              <q-th
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+              >
+                <div v-if="col.name == 'id'"></div>
+                <div v-else>{{ col.label }}</div>
+              </q-th>
+              <!-- <q-th auto-width></q-th> -->
+            </q-tr>
+          </template>
+
+          <template v-slot:body="props">
+            <q-tr :props="props">
+              <q-td>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="openATMLink(props.row.deviceid, props.row.payload)"
+                  icon="link"
+                  color="grey"
+                >
+                  <q-tooltip>Open Claim page</q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td>
+                <q-btn
+                  flat
+                  dense
+                  size="xs"
+                  @click="deleteATMLink(props.row.id)"
+                  icon="cancel"
+                  color="pink"
+                >
+                  <q-tooltip>Delete ATM Claim</q-tooltip>
+                </q-btn>
+              </q-td>
+              <q-td
+                v-for="col in props.cols"
+                :key="col.name"
+                :props="props"
+                auto-width
+              >
+                <div v-if="col.name == 'id'"></div>
+                <div v-else>{{ col.value }}</div>
+              </q-td>
+            </q-tr>
+          </template>
           {% endraw %}
         </q-table>
       </q-card-section>
@@ -205,7 +294,8 @@
           color="primary"
           size="md"
           @click="copyText(wslocation + '/api/v1/ws/' + settingsDialog.data.id, 'Link copied to clipboard!')"
-          >{% raw %}{{wslocation}}/api/v1/ws/{{settingsDialog.data.id}}{% endraw
+        >
+          {% raw %}{{wslocation}}/api/v1/ws/{{settingsDialog.data.id}}{% endraw
           %}<q-tooltip> Click to copy URL </q-tooltip>
         </q-btn>
         <q-btn
@@ -215,12 +305,13 @@
           unelevated
           color="primary"
           size="md"
-          @click="copyText(location + '/lnurldevice/api/v1/lnurl/' + settingsDialog.data.id + ',' +
-      settingsDialog.data.key + ',' + settingsDialog.data.currency, 'Link copied to clipboard!')"
-          >{% raw
+          @click="copyText(location + '/lnurldevice/api/v1/lnurl/' + settingsDialog.data.id + ',' + settingsDialog.data.key + ',' + settingsDialog.data.currency, 'Link copied to clipboard!')"
+        >
+          {% raw
           %}{{location}}/lnurldevice/api/v1/lnurl/{{settingsDialog.data.id}},
           {{settingsDialog.data.key}}, {{settingsDialog.data.currency}}{% endraw
-          %}<q-tooltip> Click to copy URL </q-tooltip>
+          %}
+          <q-tooltip> Click to copy URL </q-tooltip>
         </q-btn>
       </center>
       <div class="text-subtitle2">
@@ -240,7 +331,6 @@
           v-html="formDialoglnurldevice.data.device"
           v-if="formDialoglnurldevice.data.id"
         ></h5>
-
         <q-input
           filled
           dense
@@ -248,7 +338,6 @@
           type="text"
           label="Title"
         ></q-input>
-
         <q-select
           filled
           dense
@@ -257,7 +346,6 @@
           :options="g.user.walletOptions"
           label="Wallet *"
         ></q-select>
-
         <q-select
           filled
           dense
@@ -272,6 +360,7 @@
           :options="devices"
           color="primary"
           label="Type of device"
+          @input="formDialoglnurldevice.data.extra = []"
         ></q-option-group>
         <q-input
           v-if="formDialoglnurldevice.data.device != 'switch'"
@@ -290,7 +379,7 @@
             size="sm"
             icon="add"
             @click="addSwitch"
-            v-model="formDialoglnurldevice.data.switches"
+            v-model="formDialoglnurldevice.data.extra"
             color="primary"
           ></q-btn>
           <q-btn
@@ -300,10 +389,10 @@
             size="sm"
             icon="remove"
             @click="removeSwitch"
-            v-model="formDialoglnurldevice.data.switches"
+            v-model="formDialoglnurldevice.data.extra"
             color="primary"
           ></q-btn>
-          <div v-for="_switch in formDialoglnurldevice.data.switches">
+          <div v-for="_switch in formDialoglnurldevice.data.extra">
             <div class="row">
               <div class="col">
                 <q-input
@@ -350,21 +439,25 @@
                   label="Comment"
                   size="xs"
                   dense
-                  ><q-tooltip
-                    >Enable LNURLp comments with payments</q-tooltip
-                  ></q-checkbox
                 >
+                  <q-tooltip>Enable LNURLp comments with payments</q-tooltip>
+                </q-checkbox>
               </div>
             </div>
           </div>
         </div>
+        <q-toggle
+          v-if="formDialoglnurldevice.data.device == 'atm'"
+          :label="boltzToggleState ? 'Onchain/liquid support enabled (boltz ext must be enabled)' : 'Onchain/liquid support disabled'"
+          v-model="boltzToggleState"
+          @input="handleBoltzToggleChange"
+        ></q-toggle>
         <div class="row q-mt-lg">
           <q-btn
             v-if="formDialoglnurldevice.data.id"
             unelevated
             color="primary"
-            :disable="
-                formDialoglnurldevice.data.title == ''"
+            :disable=" formDialoglnurldevice.data.title == ''"
             type="submit"
             >Update lnurldevice</q-btn
           >
@@ -372,8 +465,7 @@
             v-else
             unelevated
             color="primary"
-            :disable="
-                formDialoglnurldevice.data.title == ''"
+            :disable="formDialoglnurldevice.data.title == ''"
             type="submit"
             >Create lnurldevice</q-btn
           >
@@ -406,390 +498,27 @@
         color="red"
         text-color="white"
         icon="error"
-        >{% raw %}{{ wsMessage }}{% endraw %}</q-chip
       >
+        {% raw %}{{ wsMessage }}{% endraw %}
+      </q-chip>
       <q-chip v-else clickable color="green" text-color="white" icon="check"
         >{% raw %}{{ wsMessage }}{% endraw %}</q-chip
       >
       <br />
       <div class="row q-mt-lg q-gutter-sm">
+        <div v-if="formDialoglnurldevice.data.extra !== 'boltz'"></div>
         <q-btn
-          v-for="_switch in qrCodeDialog.data.switches"
+          v-for="_switch in qrCodeDialog.data.extra"
           outline
           color="primary"
-          :label="'Switch pin:' + _switch.pin + ' (' + _switch.duration + ' ms)'"
           @click="lnurlValue = _switch.lnurl"
+          :label="'Switch pin:' + _switch.pin + ' (' + _switch.duration + ' ms)'"
         ></q-btn>
-        <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
       </div>
+      <q-btn v-close-popup flat color="grey" class="q-ml-auto">Close</q-btn>
     </q-card>
   </q-dialog>
 </div>
 {% endblock %} {% block scripts %} {{ window_vars(user) }}
-
-<script>
-  Vue.component(VueQrcode.name, VueQrcode)
-
-  var maplnurldevice = obj => {
-    obj._data = _.clone(obj)
-    obj.theTime = obj.time * 60 - (Date.now() / 1000 - obj.timestamp)
-    obj.time = obj.time + 'mins'
-
-    if (obj.time_elapsed) {
-      obj.date = 'Time elapsed'
-    } else {
-      obj.date = Quasar.utils.date.formatDate(
-        new Date((obj.theTime - 3600) * 1000),
-        'HH:mm:ss'
-      )
-    }
-    return obj
-  }
-
-  new Vue({
-    el: '#vue',
-    mixins: [windowMixin],
-    data: function () {
-      return {
-        tab: 'mails',
-        protocol: window.location.protocol,
-        location: window.location.hostname,
-        wslocation: window.location.hostname,
-        filter: '',
-        currency: 'USD',
-        lnurlValue: '',
-        websocketMessage: '',
-        lnurldeviceLinks: [],
-        lnurldeviceLinksObj: [],
-        devices: [
-          {
-            label: 'PoS',
-            value: 'pos'
-          },
-          {
-            label: 'ATM',
-            value: 'atm'
-          },
-          {
-            label: 'Switch',
-            value: 'switch'
-          }
-        ],
-        lnurldevicesTable: {
-          columns: [
-            {
-              name: 'title',
-              align: 'left',
-              label: 'title',
-              field: 'title'
-            },
-            {
-              name: 'theId',
-              align: 'left',
-              label: 'id',
-              field: 'id'
-            },
-            {
-              name: 'key',
-              align: 'left',
-              label: 'key',
-              field: 'key'
-            },
-            {
-              name: 'wallet',
-              align: 'left',
-              label: 'wallet',
-              field: 'wallet'
-            },
-            {
-              name: 'device',
-              align: 'left',
-              label: 'device',
-              field: 'device'
-            },
-            {
-              name: 'currency',
-              align: 'left',
-              label: 'currency',
-              field: 'currency'
-            }
-          ],
-          pagination: {
-            rowsPerPage: 10
-          }
-        },
-        passedlnurldevice: {},
-        settingsDialog: {
-          show: false,
-          data: {}
-        },
-        formDialog: {
-          show: false,
-          data: {}
-        },
-        formDialoglnurldevice: {
-          show: false,
-          data: {
-            switches: [],
-            lnurl_toggle: false,
-            show_message: false,
-            show_ack: false,
-            show_price: 'None',
-            device: 'pos',
-            profit: 1,
-            amount: 1,
-            title: ''
-          }
-        },
-        qrCodeDialog: {
-          show: false,
-          data: null
-        }
-      }
-    },
-    computed: {
-      wsMessage: function () {
-        return this.websocketMessage
-      }
-    },
-    methods: {
-      openQrCodeDialog: function (lnurldevice_id) {
-        var lnurldevice = _.findWhere(this.lnurldeviceLinks, {
-          id: lnurldevice_id
-        })
-        this.qrCodeDialog.data = _.clone(lnurldevice)
-        this.qrCodeDialog.data.url =
-          window.location.protocol + '//' + window.location.host
-        this.lnurlValue = this.qrCodeDialog.data.switches[0].lnurl
-        this.websocketConnector(
-          'wss://' + window.location.host + '/api/v1/ws/' + lnurldevice_id
-        )
-        this.qrCodeDialog.show = true
-      },
-      addSwitch: function () {
-        if (!this.formDialoglnurldevice.data.switches) {
-          this.formDialoglnurldevice.data.switches = []
-        }
-        this.formDialoglnurldevice.data.switches.push({
-          amount: 10,
-          pin: 0,
-          duration: 1000,
-          variable: false,
-          comment: false
-        })
-      },
-      removeSwitch: function () {
-        this.formDialoglnurldevice.data.switches.pop()
-      },
-
-      cancellnurldevice: function (data) {
-        var self = this
-        self.formDialoglnurldevice.show = false
-        self.clearFormDialoglnurldevice()
-      },
-      closeFormDialog: function () {
-        this.clearFormDialoglnurldevice()
-        this.formDialog.data = {
-          is_unique: false
-        }
-      },
-      sendFormDatalnurldevice: function () {
-        var self = this
-        if (!self.formDialoglnurldevice.data.profit) {
-          self.formDialoglnurldevice.data.profit = 0
-        }
-        if (self.formDialoglnurldevice.data.id) {
-          this.updatelnurldevice(
-            self.g.user.wallets[0].adminkey,
-            self.formDialoglnurldevice.data
-          )
-        } else {
-          this.createlnurldevice(
-            self.g.user.wallets[0].adminkey,
-            self.formDialoglnurldevice.data
-          )
-        }
-      },
-
-      createlnurldevice: function (wallet, data) {
-        var self = this
-        var updatedData = {}
-        for (const property in data) {
-          if (data[property]) {
-            updatedData[property] = data[property]
-          }
-        }
-        LNbits.api
-          .request('POST', '/lnurldevice/api/v1/lnurlpos', wallet, updatedData)
-          .then(function (response) {
-            self.lnurldeviceLinks.push(maplnurldevice(response.data))
-            self.formDialoglnurldevice.show = false
-            self.clearFormDialoglnurldevice()
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      getlnurldevices: function () {
-        var self = this
-        LNbits.api
-          .request(
-            'GET',
-            '/lnurldevice/api/v1/lnurlpos',
-            self.g.user.wallets[0].adminkey
-          )
-          .then(function (response) {
-            if (response.data) {
-              self.lnurldeviceLinks = response.data.map(maplnurldevice)
-            }
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      getlnurldevice: function (lnurldevice_id) {
-        var self = this
-        LNbits.api
-          .request(
-            'GET',
-            '/lnurldevice/api/v1/lnurlpos/' + lnurldevice_id,
-            self.g.user.wallets[0].adminkey
-          )
-          .then(function (response) {
-            localStorage.setItem('lnurldevice', JSON.stringify(response.data))
-            localStorage.setItem('inkey', self.g.user.wallets[0].inkey)
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      deletelnurldeviceLink: function (lnurldeviceId) {
-        var self = this
-        var link = _.findWhere(this.lnurldeviceLinks, {id: lnurldeviceId})
-        LNbits.utils
-          .confirmDialog('Are you sure you want to delete this pay link?')
-          .onOk(function () {
-            LNbits.api
-              .request(
-                'DELETE',
-                '/lnurldevice/api/v1/lnurlpos/' + lnurldeviceId,
-                self.g.user.wallets[0].adminkey
-              )
-              .then(function (response) {
-                self.lnurldeviceLinks = _.reject(
-                  self.lnurldeviceLinks,
-                  function (obj) {
-                    return obj.id === lnurldeviceId
-                  }
-                )
-              })
-              .catch(function (error) {
-                LNbits.utils.notifyApiError(error)
-              })
-          })
-      },
-      openUpdatelnurldeviceLink: function (lnurldeviceId) {
-        var self = this
-        var lnurldevice = _.findWhere(this.lnurldeviceLinks, {
-          id: lnurldeviceId
-        })
-        self.formDialoglnurldevice.data = _.clone(lnurldevice._data)
-        self.formDialoglnurldevice.show = true
-      },
-      openlnurldeviceSettings: function (lnurldeviceId) {
-        var self = this
-        var lnurldevice = _.findWhere(this.lnurldeviceLinks, {
-          id: lnurldeviceId
-        })
-        self.settingsDialog.data = _.clone(lnurldevice._data)
-        self.settingsDialog.show = true
-      },
-      updatelnurldevice: function (wallet, data) {
-        var self = this
-        var updatedData = {}
-        for (const property in data) {
-          if (data[property]) {
-            updatedData[property] = data[property]
-          }
-        }
-
-        LNbits.api
-          .request(
-            'PUT',
-            '/lnurldevice/api/v1/lnurlpos/' + updatedData.id,
-            wallet,
-            updatedData
-          )
-          .then(function (response) {
-            self.lnurldeviceLinks = _.reject(
-              self.lnurldeviceLinks,
-              function (obj) {
-                return obj.id === updatedData.id
-              }
-            )
-            self.lnurldeviceLinks.push(maplnurldevice(response.data))
-            self.formDialoglnurldevice.show = false
-            self.clearFormDialoglnurldevice()
-          })
-          .catch(function (error) {
-            LNbits.utils.notifyApiError(error)
-          })
-      },
-      websocketConnector: function (websocketUrl) {
-        if ('WebSocket' in window) {
-          self = this
-          var ws = new WebSocket(websocketUrl)
-          self.updateWsMessage('Websocket connected')
-          ws.onmessage = function (evt) {
-            var received_msg = evt.data
-            self.updateWsMessage('Message received: ' + received_msg)
-          }
-          ws.onclose = function () {
-            self.updateWsMessage('Connection closed')
-          }
-        } else {
-          self.updateWsMessage('WebSocket NOT supported by your Browser!')
-        }
-      },
-      updateWsMessage: function (message) {
-        this.websocketMessage = message
-      },
-      clearFormDialoglnurldevice() {
-        this.formDialoglnurldevice.data = {
-          lnurl_toggle: false,
-          show_message: false,
-          show_ack: false,
-          show_price: 'None',
-          title: ''
-        }
-      },
-      exportlnurldeviceCSV: function () {
-        var self = this
-        LNbits.utils.exportCSV(
-          self.lnurldevicesTable.columns,
-          this.lnurldeviceLinks
-        )
-      }
-    },
-    created: function () {
-      var self = this
-      var getlnurldevices = this.getlnurldevices
-      getlnurldevices()
-      self.location = [
-        window.location.protocol,
-        '//',
-        window.location.host
-      ].join('')
-      self.wslocation = ['ws://', window.location.host].join('')
-      LNbits.api
-        .request('GET', '/api/v1/currencies')
-        .then(response => {
-          this.currency = ['sat', 'USD', ...response.data]
-        })
-        .catch(err => {
-          LNbits.utils.notifyApiError(err)
-        })
-    }
-  })
-</script>
+<script src="{{ url_for('lnurldevice_static', path='js/index.js') }}"></script>
 {% endblock %}

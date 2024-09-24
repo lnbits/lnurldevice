@@ -1,0 +1,307 @@
+<!--/////////////////////////////////////////////////-->
+<!--////////////////USER FACING PAGE/////////////////-->
+<!--/////////////////////////////////////////////////-->
+
+{% extends "public.html" %} {% block page %}
+<div class="row q-col-gutter-md justify-center">
+  <div class="col-12 col-sm-6 col-md-5 col-lg-4">
+    <q-card v-if="used == 'True'" class="q-pa-lg">
+      <center>
+        <q-icon name="check" color="grey" size="20em"></q-icon>
+        <q-card-section class="text-h6">
+          This ATM has been used.
+        </q-card-section>
+      </center>
+    </q-card>
+    <q-card v-else class="q-pa-lg">
+      <q-card-section class="q-pa-none">
+        <q-tabs v-model="tab" active-color="primary" align="justify">
+          <q-tab
+            name="lnurl"
+            label="lnurl"
+            @click="updateTabAndClear(val)"
+          ></q-tab>
+
+          <q-tab
+            name="ln"
+            label="lightnig"
+            @click="updateTabAndClear(val)"
+          ></q-tab>
+
+          <q-tab
+            :disable="boltz == 'False' || amount < 100000"
+            name="onchain"
+            label="onchain"
+            @click="updateTabAndClear(val)"
+          >
+            <q-tooltip v-if="boltz == 'True' && amount < 100000"
+              >Amount is too small to send over onchain, needs to be 10000+
+              sats</q-tooltip
+            >
+            <q-tooltip v-if="boltz == 'False'">Onchain not available</q-tooltip>
+          </q-tab>
+
+          <q-tab
+            :disable="boltz == 'False' || amount < 2000"
+            name="liquid"
+            label="liquid"
+            @click="updateTabAndClear(val)"
+          >
+            <q-tooltip v-if="boltz == 'True' && amount < 2000"
+              >Amount is too small to send over liquid, needs to be 2000+
+              sats</q-tooltip
+            >
+            <q-tooltip v-if="boltz == 'False'">Onchain not available</q-tooltip>
+          </q-tab>
+        </q-tabs>
+        <q-separator></q-separator>
+
+        <q-tab-panels v-model="tab">
+          <q-tab-panel name="lnurl">
+            <div class="text-h8">LNURL withdraw</div>
+            <div class="text-center">
+              <a class="text-secondary" :href="'lightning:' + qr_value">
+                <q-responsive :ratio="1" class="q-mx-md">
+                  <qrcode
+                    :value="qr_value"
+                    :options="{width: 800}"
+                    class="rounded-borders"
+                  ></qrcode>
+                </q-responsive>
+              </a>
+            </div>
+
+            <div class="row q-mt-lg q-gutter-sm">
+              <q-btn
+                outline
+                color="grey"
+                @click="copyText(qr_value, 'LNURL copied to clipboard!')"
+                >Copy LNURL
+              </q-btn>
+            </div>
+          </q-tab-panel>
+          <q-tab-panel name="ln">
+            <div class="text-h8">Lightning / LNaddress / LNURL-pay</div>
+            <q-form @submit="sendLNaddress" class="q-gutter-md">
+              <q-input
+                filled
+                dense
+                v-model.trim="ln"
+                type="textarea"
+                :label="'Paste an LNaddress or LNURL-pay'"
+                ref="textArea"
+              >
+              </q-input>
+              <div class="row q-mt-lg">
+                <q-btn
+                  unelevated
+                  color="primary"
+                  :disable="ln == ''"
+                  type="submit"
+                  :label="$t('withdraw')"
+                ></q-btn>
+              </div>
+            </q-form>
+          </q-tab-panel>
+
+          <q-tab-panel name="onchain" :disable="boltz === false">
+            <div class="text-h8">Onchain</div>
+            <q-form @submit="sendOnchainAddress" class="q-gutter-md">
+              <q-input
+                filled
+                dense
+                v-model.trim="address"
+                type="textarea"
+                label="Paste an Onchain address"
+                ref="textArea"
+              >
+              </q-input>
+              <div class="row q-mt-lg">
+                <q-btn
+                  unelevated
+                  color="primary"
+                  :disable="address == ''"
+                  type="submit"
+                  :label="$t('withdraw')"
+                ></q-btn>
+              </div>
+            </q-form>
+          </q-tab-panel>
+
+          <q-tab-panel name="liquid" :disable="boltz === false">
+            <div class="text-h8">Liquid</div>
+            <q-form @submit="sendLiquidAddress" class="q-gutter-md">
+              <q-input
+                filled
+                dense
+                v-model.trim="address"
+                type="textarea"
+                label="Paste a Liquid address"
+                ref="textArea"
+              >
+              </q-input>
+              <div class="row q-mt-lg">
+                <q-btn
+                  unelevated
+                  color="primary"
+                  :disable="address == ''"
+                  type="submit"
+                  :label="$t('withdraw')"
+                ></q-btn>
+              </div>
+            </q-form>
+          </q-tab-panel>
+        </q-tab-panels>
+      </q-card-section>
+    </q-card>
+  </div>
+  <div class="col-12 col-sm-6 col-md-5 col-lg-4 q-gutter-y-md">
+    <q-card>
+      <q-card-section>
+        <strike v-if="used == 'True'" class="text-h4 q-mb-xs"
+          >You can withdraw:
+        </strike>
+        <h1 v-else class="text-h4 q-mb-xs">You can withdraw:</h1>
+        <h3 class="text-h5">
+          ${amount} SATS/BTC <br />
+          ${(amount / 100000000).toFixed(8)} BTC
+        </h3>
+      </q-card-section>
+      <q-card-section class="q-pt-lg q-pb-xl">
+        <q-btn
+          v-if="recentpay && recentpay != 'False'"
+          label="View receipt"
+          color="primary"
+          unelevated
+          type="a"
+          target="_blank"
+          :href="'/lnurldevice/print/' + recentpay"
+        ></q-btn>
+      </q-card-section>
+    </q-card>
+  </div>
+</div>
+
+{% endblock %} {% block scripts %}
+<script>
+  Vue.component(VueQrcode.name, VueQrcode)
+
+  new Vue({
+    el: '#vue',
+    mixins: [windowMixin],
+    delimiters: ['${', '}'],
+    data: function () {
+      return {
+        device_id: '{{device_id}}',
+        qr_value: '{{lnurl}}',
+        lnurl: '{{lnurl}}',
+        boltz: '{{boltz}}',
+        amount: '{{amount}}',
+        used: '{{used}}',
+        p: '{{p}}',
+        tab: 'lnurl',
+        ln: '',
+        address: '',
+        onchain_liquid: 'BTC/BTC',
+        recentpay: '{{recentpay}}',
+        payment_options: ['lnurl', 'ln', 'onchain', 'liquid']
+      }
+    },
+    methods: {
+      async sendLNaddress() {
+        try {
+          const response = await LNbits.api.request(
+            'GET',
+            `/lnurldevice/api/v1/ln/${this.device_id}/${this.p}/${this.ln}`,
+            ''
+          )
+          console.log(response.data)
+          if (response.data) {
+            this.ln = ''
+            this.notifyUser('Payment should be with you shortly', 'positive')
+            this.connectWebsocket(payment_id)
+          }
+          window.location.reload()
+        } catch (error) {
+          this.notifyApiError(error)
+        }
+      },
+      updateTabAndClear(val) {
+        this.address = ''
+        this.ln = ''
+        this.tab = val.name
+      },
+      sendOnchainAddress() {
+        this.onchain_liquid = 'BTC-BTC'
+        this.sendAddress()
+      },
+      sendLiquidAddress() {
+        this.onchain_liquid = 'L-BTC-BTC'
+        this.sendAddress()
+      },
+      async sendAddress() {
+        try {
+          const response = await LNbits.api.request(
+            'GET',
+            `/lnurldevice/api/v1/boltz/${this.device_id}/${this.p}/${this.onchain_liquid}/${this.address}`,
+            ''
+          )
+          if (response.data) {
+            this.notifyUser('Payment should be with you shortly', 'positive')
+            this.connectWebsocket(payment_id)
+          }
+        } catch (error) {
+          this.notifyApiError(error)
+        }
+      },
+      connectWebsocket(payment_id) {
+        const protocol = location.protocol === 'https:' ? 'wss://' : 'ws://'
+        const localUrl = `${protocol}${document.domain}:${location.port}/api/v1/ws/${review_id}` // Ensure review_id is defined or passed correctly
+        this.connection = new WebSocket(localUrl)
+        this.connection.onmessage = () => {
+          this.notifyUser('Payment sent!', 'positive')
+        }
+      },
+      closeParseDialog() {
+        setTimeout(() => {
+          clearInterval(this.parse.paymentChecker)
+        }, 10000)
+      },
+      focusInput(el) {
+        this.$nextTick(() => this.$refs[el].focus())
+      },
+      msatoshiFormat(value) {
+        return LNbits.utils.formatSat(value / 1000)
+      },
+      showParseDialog() {
+        this.parse.show = true
+        this.parse.invoice = null
+        this.parse.copy.show =
+          window.isSecureContext && navigator.clipboard?.readText !== undefined
+        this.parse.data.request = ''
+        this.parse.data.comment = ''
+        this.parse.data.paymentChecker = null
+        this.focusInput('textArea')
+      },
+      notifyUser(message, type) {
+        this.$q.notify({
+          message,
+          type,
+          spinner: type === 'positive',
+          timeout: 5000
+        })
+      },
+      notifyApiError(error) {
+        LNbits.utils.notifyApiError(error)
+      }
+    },
+    watch: {
+      tab: function (newVal, oldVal) {
+        if (newVal === 'ln') {
+          this.launchFunction()
+        }
+      }
+    }
+  })
+</script>
+{% endblock %}
