@@ -130,7 +130,7 @@ async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurlde
 
 
 async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldevice]:
-
+ 
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
         f"""
@@ -216,7 +216,9 @@ async def get_lnurldevicepayment(
 
 async def get_lnurldevicepayments(
     lnurldevice_ids: List[str],
-) -> List[LnurldevicePayment]:
+) -> Optional[List[LnurldevicePayment]]:
+    if not lnurldevice_ids:
+        return []
     q = ",".join(["?"] * len(lnurldevice_ids))
     rows = await db.fetchall(
         f"""

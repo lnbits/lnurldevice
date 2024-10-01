@@ -32,7 +32,6 @@ class Lnurldevice(BaseModel):
     currency: str
     device: str
     extra: Optional[Union[Json[List[LnurldeviceExtra]], str]]
-    timestamp: str
 
     @property
     def lnurlpay_metadata(self) -> LnurlPayMetadata:
@@ -46,7 +45,6 @@ class LnurldevicePayment(BaseModel):
     payload: str
     pin: int
     sats: int
-    timestamp: str
 
 
 class Lnurlencode(BaseModel):
