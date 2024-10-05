@@ -16,6 +16,8 @@ from .crud import (
 )
 from .helpers import register_atm_payment, xor_decrypt
 
+from loguru import logger
+
 lnurldevice_lnurl_router = APIRouter()
 
 
@@ -219,39 +221,46 @@ async def lnurl_callback(
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail="Not valid payment request"
             )
+        if not invoice.payment_hash:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Not valid payment request"
+            )
+        if int(invoice.amount_msat / 1000) != lnurldevicepayment.sats:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Request is not the same as withdraw amount"
+            )
         wallet = await get_wallet(device.wallet)
         assert wallet
         if wallet.balance_msat < (int(lnurldevicepayment.sats / 1000) + 100):
             raise HTTPException(
                 status_code=HTTPStatus.FORBIDDEN, detail="Not enough funds"
             )
-        else:
-            if lnurldevicepayment.payload != k1:
-                return {"status": "ERROR", "reason": "Bad K1"}
-            if lnurldevicepayment.payhash != "payment_hash":
-                return {"status": "ERROR", "reason": "Payment already claimed"}
-            try:
-                lnurldevicepayment.payhash = lnurldevicepayment.payload
-                lnurldevicepayment_updated = await update_lnurldevicepayment(
-                    lnurldevicepayment
-                )
-                assert lnurldevicepayment_updated
-                await pay_invoice(
-                    wallet_id=device.wallet,
-                    payment_request=pr,
-                    max_sat=int(lnurldevicepayment_updated.sats / 1000),
-                    extra={"tag": "withdraw"},
-                )
-            except Exception as exc:
-                lnurldevicepayment.payhash = "payment_hash"
-                lnurldevicepayment_updated = await update_lnurldevicepayment(
-                    lnurldevicepayment
-                )
-                assert lnurldevicepayment_updated
-                raise HTTPException(
-                    status_code=HTTPStatus.FORBIDDEN, detail="Failed to make payment"
-                ) from exc
-            return {"status": "OK"}
+        if lnurldevicepayment.payload != k1:
+            return {"status": "ERROR", "reason": "Bad K1"}
+        if lnurldevicepayment.payhash != "payment_hash":
+            return {"status": "ERROR", "reason": "Payment already claimed"}
+        try:
+            lnurldevicepayment.payhash = lnurldevicepayment.payload
+            lnurldevicepayment_updated = await update_lnurldevicepayment(
+                lnurldevicepayment
+            )
+            assert lnurldevicepayment_updated
+            await pay_invoice(
+                wallet_id=device.wallet,
+                payment_request=pr,
+                max_sat=int(lnurldevicepayment_updated.sats / 1000),
+                extra={"tag": "lnurldevice_withdraw"},
+            )
+        except Exception as exc:
+            lnurldevicepayment.payhash = "payment_hash"
+            lnurldevicepayment_updated = await update_lnurldevicepayment(
+                lnurldevicepayment
+            )
+            assert lnurldevicepayment_updated
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Failed to make payment"
+            ) from exc
+        return {"status": "OK"}
     if device.device == "switch":
         if not amount:
             return {"status": "ERROR", "reason": "No amount"}

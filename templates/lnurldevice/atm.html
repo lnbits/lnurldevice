@@ -29,26 +29,26 @@
           ></q-tab>
 
           <q-tab
-            :disable="boltz == 'False' || amount < 100000"
+            :disable="boltz == 'False' || amount < 50000"
             name="onchain"
             label="onchain"
             @click="updateTabAndClear(val)"
           >
-            <q-tooltip v-if="boltz == 'True' && amount < 100000"
-              >Amount is too small to send over onchain, needs to be 10000+
+            <q-tooltip v-if="boltz == 'True' && amount < 50000"
+              >Amount is too small to send over onchain, needs to be 50000+
               sats</q-tooltip
             >
             <q-tooltip v-if="boltz == 'False'">Onchain not available</q-tooltip>
           </q-tab>
 
           <q-tab
-            :disable="boltz == 'False' || amount < 2000"
+            :disable="boltz == 'False' || amount < 10000"
             name="liquid"
             label="liquid"
             @click="updateTabAndClear(val)"
           >
-            <q-tooltip v-if="boltz == 'True' && amount < 2000"
-              >Amount is too small to send over liquid, needs to be 2000+
+            <q-tooltip v-if="boltz == 'True' && amount < 10000"
+              >Amount is too small to send over liquid, needs to be 10000+
               sats</q-tooltip
             >
             <q-tooltip v-if="boltz == 'False'">Onchain not available</q-tooltip>
@@ -232,11 +232,11 @@
         this.tab = val.name
       },
       sendOnchainAddress() {
-        this.onchain_liquid = 'BTC-BTC'
+        this.onchain_liquid = 'BTCtempBTC'
         this.sendAddress()
       },
       sendLiquidAddress() {
-        this.onchain_liquid = 'L-BTC-BTC'
+        this.onchain_liquid = 'L-BTCtempBTC'
         this.sendAddress()
       },
       async sendAddress() {
@@ -247,8 +247,8 @@
             ''
           )
           if (response.data) {
+            this.ln = ''
             this.notifyUser('Payment should be with you shortly', 'positive')
-            this.connectWebsocket(payment_id)
           }
         } catch (error) {
           this.notifyApiError(error)

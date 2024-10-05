@@ -1,5 +1,6 @@
 from http import HTTPStatus
 
+import bolt11
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Request
 from lnbits.core.crud import get_user, get_wallet
@@ -29,7 +30,7 @@ from .crud import (
 )
 from .helpers import register_atm_payment
 from .models import CreateLnurldevice, Lnurlencode
-
+from loguru import logger
 lnurldevice_api_router = APIRouter()
 
 
@@ -158,12 +159,6 @@ async def get_lnurldevice_payment_lightning(
             status_code=HTTPStatus.NOT_FOUND, detail="Payment already claimed."
         )
 
-    # If its an invoice check its a legit invoice
-    if ln[:4] == "lnbc":
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="Invoices not supported."
-        )
-
     # If its an lnaddress or lnurlp get the request from callback
     elif ln[:5] == "lnurl" or "@" in ln and "." in ln.split("@")[-1]:
         data = await api_lnurlscan(ln)
@@ -183,6 +178,10 @@ async def get_lnurldevice_payment_lightning(
                 )
             ln = response.json()["pr"]
 
+    # If just an invoice
+    elif ln[:4] == "lnbc":
+        ln = ln
+
     # If ln is gibberish, return an error
     else:
         raise HTTPException(
@@ -192,6 +191,22 @@ async def get_lnurldevice_payment_lightning(
             Use LNaddress or LNURLp
             """,
         )
+
+    # If its an invoice check its a legit invoice
+    if ln[:4] == "lnbc":
+        invoice = bolt11.decode(ln)
+        if not invoice.payment_hash:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Not valid payment request"
+            )
+        if not invoice.payment_hash:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Not valid payment request"
+            )
+        if int(invoice.amount_msat / 1000) != lnurldevicepayment.sats:
+            raise HTTPException(
+                status_code=HTTPStatus.FORBIDDEN, detail="Request is not the same as withdraw amount"
+            )
 
     # Finally log the payment and make the payment
     try:
@@ -215,7 +230,7 @@ async def get_lnurldevice_payment_lightning(
 
 
 @lnurldevice_api_router.get(
-    "'/api/v1/boltz/{lnurldevice_id}/{payload}/{onchain_liquid}/{address}"
+    "/api/v1/boltz/{lnurldevice_id}/{payload}/{onchain_liquid}/{address}"
 )
 async def get_lnurldevice_payment_boltz(
     req: Request, lnurldevice_id: str, payload: str, onchain_liquid: str, address: str
@@ -246,11 +261,15 @@ async def get_lnurldevice_payment_boltz(
 
     data = {
         "wallet": lnurldevice.wallet,
-        "asset": onchain_liquid.replace("-", "/"),
-        "amount": price_msat,
+        "asset": onchain_liquid.replace("temp", "/"),
+        "amount": lnurldevicepayment.sats,
+        "direction": "send",
         "instant_settlement": True,
         "onchain_address": address,
+        "feerate": False,
+        "feerate_value": 0,
     }
+
     try:
         lnurldevicepayment.payload = payload
         await update_lnurldevicepayment(lnurldevicepayment)
@@ -258,8 +277,9 @@ async def get_lnurldevice_payment_boltz(
             response = await client.post(
                 url=f"http://{settings.host}:{settings.port}/boltz/api/v1/swap/reverse",
                 headers={"X-API-KEY": wallet.adminkey},
-                data=data,
+                json=data,
             )
-        return response.json()
+            resp = response.json()
+            return resp
     except Exception as exc:
         return {"status": "ERROR", "reason": str(exc)}
