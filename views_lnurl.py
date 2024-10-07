@@ -2,7 +2,7 @@ import base64
 from http import HTTPStatus
 
 import bolt11
-from fastapi import APIRouter, HTTPException, Query, Request
+from fastapi import APIRouter, Query, Request
 from lnbits.core.crud import get_wallet
 from lnbits.core.services import create_invoice
 from lnbits.core.views.api import pay_invoice
@@ -10,14 +10,12 @@ from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from .crud import (
     create_lnurldevicepayment,
+    delete_atm_payment_link,
     get_lnurldevice,
     get_lnurldevicepayment,
-    delete_atm_payment_link,
     update_lnurldevicepayment,
 )
 from .helpers import register_atm_payment, xor_decrypt
-
-from loguru import logger
 
 lnurldevice_lnurl_router = APIRouter()
 
@@ -244,7 +242,7 @@ async def lnurl_callback(
                 max_sat=int(lnurldevicepayment_updated.sats / 1000),
                 extra={"tag": "lnurldevice_withdraw"},
             )
-        except:
+        except Exception:
             lnurldevicepayment.payhash = "payment_hash"
             lnurldevicepayment_updated = await update_lnurldevicepayment(
                 lnurldevicepayment

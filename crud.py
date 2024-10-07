@@ -130,7 +130,7 @@ async def get_lnurldevice(lnurldevice_id: str, req: Request) -> Optional[Lnurlde
 
 
 async def get_lnurldevices(wallet_ids: List[str], req: Request) -> List[Lnurldevice]:
- 
+
     q = ",".join(["?"] * len(wallet_ids))
     rows = await db.fetchall(
         f"""

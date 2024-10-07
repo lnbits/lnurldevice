@@ -30,7 +30,6 @@ from .crud import (
 )
 from .helpers import register_atm_payment
 from .models import CreateLnurldevice, Lnurlencode
-from loguru import logger
 
 lnurldevice_api_router = APIRouter()
 

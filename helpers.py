@@ -8,7 +8,7 @@ from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from .crud import create_lnurldevicepayment, get_recent_lnurldevicepayment
 from .models import Lnurldevice, LnurldevicePayment
-from loguru import logger
+
 
 async def register_atm_payment(
     device: Lnurldevice, payload: str
