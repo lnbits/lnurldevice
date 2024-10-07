@@ -17,6 +17,8 @@ from .crud import (
 )
 from .helpers import register_atm_payment, xor_decrypt
 
+from loguru import logger
+
 lnurldevice_lnurl_router = APIRouter()
 
 
