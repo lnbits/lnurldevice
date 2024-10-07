@@ -150,7 +150,6 @@ async def lnurl_params(
     if price_msat is None:
         return {"status": "ERROR", "reason": "Price fetch error."}
 
-
     if atm:
         lnurldevicepayment, price_msat = await register_atm_payment(device, p)
         if not lnurldevicepayment:
