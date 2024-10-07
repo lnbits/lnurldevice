@@ -255,7 +255,6 @@ async def lnurl_callback(
                 lnurldevicepayment
             )
             assert lnurldevicepayment_updated
-            await delete_atm_payment_link(paymentid)
             return {"status": "ERROR", "reason": "Failed to make payment."}
         return {"status": "OK"}
     if device.device == "switch":
