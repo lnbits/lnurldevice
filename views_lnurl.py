@@ -148,11 +148,11 @@ async def lnurl_params(
 
     if atm:
         try:
-            lnurldevicepayment, price_msat = await register_atm_payment(device, p)
+            lnurldevicepayment, price_msatl = await register_atm_payment(device, p)
             if not lnurldevicepayment:
                 return {"status": "ERROR", "reason": "Could not create ATM payment."}
-            if not price_msat:
-                return {"status": "ERROR", "reason": "Could not create ATM payment."}
+            if price_msatl:
+                price_msat = price_msatl
             return {
                 "tag": "withdrawRequest",
                 "callback": str(
