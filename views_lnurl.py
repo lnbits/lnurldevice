@@ -88,7 +88,11 @@ async def lnurl_params(
 
         # Check they're not trying to trick the switch!
         check = False
-        if device.extra and "atm" not in device.extra:
+        if (
+            device.extra
+            and not isinstance(device.extra, str)
+            and "atm" not in device.extra
+        ):
             for extra in device.extra:
                 if (
                     extra.pin == int(pin)
@@ -143,6 +147,9 @@ async def lnurl_params(
         if device.currency != "sat"
         else amount_in_cent
     )
+    if price_msat is None:
+        return {"status": "ERROR", "reason": "Price fetch error."}
+
 
     if atm:
         lnurldevicepayment, price_msat = await register_atm_payment(device, p)
