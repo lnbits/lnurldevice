@@ -216,7 +216,9 @@ async def get_lnurldevicepayment(
 
 async def get_lnurldevicepayments(
     lnurldevice_ids: List[str],
-) -> List[LnurldevicePayment]:
+) -> Optional[List[LnurldevicePayment]]:
+    if not lnurldevice_ids:
+        return []
     q = ",".join(["?"] * len(lnurldevice_ids))
     rows = await db.fetchall(
         f"""
