@@ -8,7 +8,7 @@ from lnbits.utils.exchange_rates import fiat_amount_as_satoshis
 
 from .crud import create_lnurldevicepayment, get_recent_lnurldevicepayment
 from .models import Lnurldevice, LnurldevicePayment
-
+from loguru import logger
 
 async def register_atm_payment(
     device: Lnurldevice, payload: str
@@ -16,17 +16,8 @@ async def register_atm_payment(
     """
     Register an ATM payment to avoid double pull.
     """
-    lnurldevicepayment = await get_recent_lnurldevicepayment(payload)
-    # If the payment is already registered and been paid, return None
-    if lnurldevicepayment and lnurldevicepayment.payload == lnurldevicepayment.payhash:
-        return None, None
-    # If the payment is already registered and not been paid, return lnurlpayment record
-    elif (
-        lnurldevicepayment and lnurldevicepayment.payload != lnurldevicepayment.payhash
-    ):
-        return lnurldevicepayment, None
 
-    # else create a new lnurlpayment record
+    # create a new lnurlpayment record
     data = base64.urlsafe_b64decode(payload)
     decrypted = xor_decrypt(device.key.encode(), data)
     price_msat = (
@@ -34,7 +25,18 @@ async def register_atm_payment(
         if device.currency != "sat"
         else decrypted[1] * 1000
     )
-    price_msat = int(price_msat * ((device.profit / 100) + 1))
+    price_msat = int(price_msat - ((price_msat / 100) * device.profit))
+
+    lnurldevicepayment = await get_recent_lnurldevicepayment(payload)
+    # If the payment is already registered and been paid, return None
+    if lnurldevicepayment and lnurldevicepayment.payload == lnurldevicepayment.payhash:
+        return None, price_msat
+    # If the payment is already registered and not been paid, return lnurlpayment record
+    if (
+        lnurldevicepayment and lnurldevicepayment.payload != lnurldevicepayment.payhash
+    ):
+        return lnurldevicepayment, price_msat
+
     lnurldevicepayment = await create_lnurldevicepayment(
         deviceid=device.id,
         payload=payload,

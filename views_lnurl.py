@@ -147,26 +147,21 @@ async def lnurl_params(
     )
 
     if atm:
-        try:
-            lnurldevicepayment, price_msatl = await register_atm_payment(device, p)
-            if not lnurldevicepayment:
-                return {"status": "ERROR", "reason": "Could not create ATM payment."}
-            if price_msatl:
-                price_msat = price_msatl
-            return {
-                "tag": "withdrawRequest",
-                "callback": str(
-                    request.url_for(
-                        "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
-                    )
-                ),
-                "k1": p,
-                "minWithdrawable": price_msat,
-                "maxWithdrawable": price_msat,
-                "defaultDescription": f"{device.title} ID: {lnurldevicepayment.id}",
-            }
-        except:
+        lnurldevicepayment, price_msat = await register_atm_payment(device, p)
+        if not lnurldevicepayment:
             return {"status": "ERROR", "reason": "Could not create ATM payment."}
+        return {
+            "tag": "withdrawRequest",
+            "callback": str(
+                request.url_for(
+                    "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
+                )
+            ),
+            "k1": p,
+            "minWithdrawable": price_msat,
+            "maxWithdrawable": price_msat,
+            "defaultDescription": f"{device.title} ID: {lnurldevicepayment.id}",
+        }
     price_msat = int(price_msat * ((device.profit / 100) + 1))
 
     lnurldevicepayment = await create_lnurldevicepayment(
