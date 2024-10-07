@@ -12,6 +12,7 @@ from .crud import (
     create_lnurldevicepayment,
     get_lnurldevice,
     get_lnurldevicepayment,
+    delete_atm_payment_link,
     update_lnurldevicepayment,
 )
 from .helpers import register_atm_payment, xor_decrypt
@@ -146,21 +147,26 @@ async def lnurl_params(
     )
 
     if atm:
-        lnurldevicepayment, price_msat = await register_atm_payment(device, p)
-        if not lnurldevicepayment:
+        try:
+            lnurldevicepayment, price_msat = await register_atm_payment(device, p)
+            if not lnurldevicepayment:
+                return {"status": "ERROR", "reason": "Could not create ATM payment."}
+            if not price_msat:
+                return {"status": "ERROR", "reason": "Could not create ATM payment."}
+            return {
+                "tag": "withdrawRequest",
+                "callback": str(
+                    request.url_for(
+                        "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
+                    )
+                ),
+                "k1": p,
+                "minWithdrawable": price_msat,
+                "maxWithdrawable": price_msat,
+                "defaultDescription": f"{device.title} ID: {lnurldevicepayment.id}",
+            }
+        except:
             return {"status": "ERROR", "reason": "Could not create ATM payment."}
-        return {
-            "tag": "withdrawRequest",
-            "callback": str(
-                request.url_for(
-                    "lnurldevice.lnurl_callback", paymentid=lnurldevicepayment.id
-                )
-            ),
-            "k1": p,
-            "minWithdrawable": price_msat,
-            "maxWithdrawable": price_msat,
-            "defaultDescription": f"{device.title} ID: {lnurldevicepayment.id}",
-        }
     price_msat = int(price_msat * ((device.profit / 100) + 1))
 
     lnurldevicepayment = await create_lnurldevicepayment(
@@ -201,43 +207,35 @@ async def lnurl_callback(
 ):
     lnurldevicepayment = await get_lnurldevicepayment(paymentid)
     if not lnurldevicepayment:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="lnurldevicepayment not found."
-        )
+        return {"status": "ERROR", "reason": "lnurldevicepayment not found."}
     device = await get_lnurldevice(lnurldevicepayment.deviceid, request)
     if not device:
-        raise HTTPException(
-            status_code=HTTPStatus.NOT_FOUND, detail="lnurldevice not found."
-        )
+        await delete_atm_payment_link(paymentid)
+        return {"status": "ERROR", "reason": "lnurldevice not found."}
     if device.device == "atm":
         if lnurldevicepayment.payload == lnurldevicepayment.payhash:
+            await delete_atm_payment_link(paymentid)
             return {"status": "ERROR", "reason": "Payment already claimed"}
         if not pr:
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, detail="No payment request"
-            )
+            await delete_atm_payment_link(paymentid)
+            return {"status": "ERROR", "reason": "No payment request."}
         invoice = bolt11.decode(pr)
         if not invoice.payment_hash:
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, detail="Not valid payment request"
-            )
+            await delete_atm_payment_link(paymentid)
+            return {"status": "ERROR", "reason": "Not valid payment request."}
         if not invoice.payment_hash:
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, detail="Not valid payment request"
-            )
-        if int(invoice.amount_msat / 1000) != lnurldevicepayment.sats:
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, detail="Request is not the same as withdraw amount"
-            )
+            await delete_atm_payment_link(paymentid)
+            return {"status": "ERROR", "reason": "Not valid payment request."}
         wallet = await get_wallet(device.wallet)
         assert wallet
         if wallet.balance_msat < (int(lnurldevicepayment.sats / 1000) + 100):
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, detail="Not enough funds"
-            )
+            await delete_atm_payment_link(paymentid)
+            return {"status": "ERROR", "reason": "Not enough funds."}
         if lnurldevicepayment.payload != k1:
+            await delete_atm_payment_link(paymentid)
             return {"status": "ERROR", "reason": "Bad K1"}
         if lnurldevicepayment.payhash != "payment_hash":
+            await delete_atm_payment_link(paymentid)
             return {"status": "ERROR", "reason": "Payment already claimed"}
         try:
             lnurldevicepayment.payhash = lnurldevicepayment.payload
@@ -251,15 +249,14 @@ async def lnurl_callback(
                 max_sat=int(lnurldevicepayment_updated.sats / 1000),
                 extra={"tag": "lnurldevice_withdraw"},
             )
-        except Exception as exc:
+        except:
             lnurldevicepayment.payhash = "payment_hash"
             lnurldevicepayment_updated = await update_lnurldevicepayment(
                 lnurldevicepayment
             )
             assert lnurldevicepayment_updated
-            raise HTTPException(
-                status_code=HTTPStatus.FORBIDDEN, detail="Failed to make payment"
-            ) from exc
+            await delete_atm_payment_link(paymentid)
+            return {"status": "ERROR", "reason": "Failed to make payment."}
         return {"status": "OK"}
     if device.device == "switch":
         if not amount:
