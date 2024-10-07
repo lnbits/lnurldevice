@@ -183,7 +183,6 @@ async def print_receipt(request: Request, payment_id):
             "payhash": lnurldevicepayment.payhash,
             "payload": lnurldevicepayment.payload,
             "sats": lnurldevicepayment.sats,
-            "timestamp": lnurldevicepayment.timestamp,
             "lnurl": lnurl,
         },
     )

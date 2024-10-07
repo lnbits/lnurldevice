@@ -21,10 +21,6 @@
             <td>{{devicename}} ({{deviceid}})</td>
           </tr>
           <tr>
-            <td><b>Withdraw attempt</b></td>
-            <td>${newtimestamp}</td>
-          </tr>
-          <tr>
             <td><b>Claimed</b></td>
             <td>{{ "False" if payhash == "payment_hash" else "True" }}</td>
           </tr>
@@ -146,14 +142,8 @@
         printDialog: {
           show: true,
           data: null
-        },
-        timestamp: '{{timestamp}}',
-        newtimestamp: ''
+        }
       }
-    },
-    created() {
-      this.newtimestamp = new Date(this.timestamp * 1000).toUTCString()
-      console.log(this.newtimestamp)
     }
   })
 </script>
