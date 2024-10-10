@@ -17,8 +17,8 @@ from lnurl import decode as lnurl_decode
 from lnurl import encode as lnurl_encode
 from loguru import logger
 
-from .crud import get_lnurldevice, get_lnurldevicepayment, get_recent_lnurldevicepayment
-from .helpers import xor_decrypt
+from .crud import get_lnurldevice, get_lnurldevicepayment
+from .helpers import register_atm_payment, xor_decrypt
 
 lnurldevice_generic_router = APIRouter()
 
@@ -97,7 +97,7 @@ async def atmpage(request: Request, lightning: str):
                 logger.debug(access)
 
     # Attempt to get recent payment information
-    recent_pay_attempt = await get_recent_lnurldevicepayment(p)
+    lnurldevicepayment, price_msat = await register_atm_payment(device, p)
 
     # Render the response template
     return lnurldevice_renderer().TemplateResponse(
@@ -105,15 +105,15 @@ async def atmpage(request: Request, lightning: str):
         {
             "request": request,
             "lnurl": lightning,
-            "amount": int(((int(price_msat) / 100) * device.profit) + int(price_msat)),
+            "amount": lnurldevicepayment.sats,
             "device_id": device.id,
             "boltz": True if access else False,
             "p": p,
-            "recentpay": recent_pay_attempt.id if recent_pay_attempt else False,
+            "recentpay": lnurldevicepayment.id if lnurldevicepayment else False,
             "used": (
                 True
-                if recent_pay_attempt
-                and recent_pay_attempt.payload == recent_pay_attempt.payhash
+                if lnurldevicepayment
+                and lnurldevicepayment.payload == lnurldevicepayment.payhash
                 else False
             ),
         },
