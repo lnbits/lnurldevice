@@ -249,7 +249,13 @@ async def get_lnurldevice_payment_boltz(
     assert lnurldevicepayment
     if lnurldevicepayment == "ERROR":
         return lnurldevicepayment
-
+    if lnurldevicepayment.payload == lnurldevicepayment.payhash:
+        return {"status": "ERROR", "reason": "Payment already claimed."}
+    if lnurldevicepayment.payhash == "pending":
+        return {
+            "status": "ERROR",
+            "reason": "Pending. If you are unable to withdraw contact vendor",
+        }
     wallet = await get_wallet(lnurldevice.wallet)
     if not wallet:
         raise HTTPException(
@@ -273,14 +279,28 @@ async def get_lnurldevice_payment_boltz(
 
     try:
         lnurldevicepayment.payload = payload
-        await update_lnurldevicepayment(lnurldevicepayment)
+        lnurldevicepayment.payhash = "pending"
+        lnurldevicepayment_updated = await update_lnurldevicepayment(
+            lnurldevicepayment
+        )
+        assert lnurldevicepayment_updated
         async with httpx.AsyncClient() as client:
             response = await client.post(
                 url=f"http://{settings.host}:{settings.port}/boltz/api/v1/swap/reverse",
                 headers={"X-API-KEY": wallet.adminkey},
                 json=data,
             )
+            lnurldevicepayment.payhash = lnurldevicepayment.payload
+            lnurldevicepayment_updated = await update_lnurldevicepayment(
+                lnurldevicepayment
+            )
+            assert lnurldevicepayment_updated
             resp = response.json()
             return resp
     except Exception as exc:
+        lnurldevicepayment.payhash = "payment_hash"
+        lnurldevicepayment_updated = await update_lnurldevicepayment(
+            lnurldevicepayment
+        )
+        assert lnurldevicepayment_updated
         return {"status": "ERROR", "reason": str(exc)}
