@@ -280,9 +280,7 @@ async def get_lnurldevice_payment_boltz(
     try:
         lnurldevicepayment.payload = payload
         lnurldevicepayment.payhash = "pending"
-        lnurldevicepayment_updated = await update_lnurldevicepayment(
-            lnurldevicepayment
-        )
+        lnurldevicepayment_updated = await update_lnurldevicepayment(lnurldevicepayment)
         assert lnurldevicepayment_updated
         async with httpx.AsyncClient() as client:
             response = await client.post(
@@ -299,8 +297,6 @@ async def get_lnurldevice_payment_boltz(
             return resp
     except Exception as exc:
         lnurldevicepayment.payhash = "payment_hash"
-        lnurldevicepayment_updated = await update_lnurldevicepayment(
-            lnurldevicepayment
-        )
+        lnurldevicepayment_updated = await update_lnurldevicepayment(lnurldevicepayment)
         assert lnurldevicepayment_updated
         return {"status": "ERROR", "reason": str(exc)}
