@@ -219,3 +219,8 @@ async def m006_redux(db):
     await db.execute(
         "ALTER TABLE lnurldevice.lnurldevice RENAME COLUMN switches TO extra"
     )
+
+async def m007_redux(db):
+    await db.execute(
+        "ALTER TABLE lnurldevice.lnurldevice ADD COLUMN description TEXT;"
+    )
