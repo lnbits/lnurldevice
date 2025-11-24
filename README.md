@@ -82,7 +82,10 @@ Set up WiFi, wallet, API endpoints, and device-specific settings again.
 
 Once completed, your hardware runs fully under the new extension.
 
-# 📚 Repositories & Hardware Installers
+> [!IMPORTANT]
+> LNPoS & BitcoinSwitch working with LNURLDevice while FOSSA is not compatible!
+
+# Repositories & Hardware Installers
 
 | Project                   | Repository Link                                                      | Hardware Installer                |
 |--------------------------|-----------------------------------------------------------------------|-----------------------------------|
@@ -95,7 +98,7 @@ Once completed, your hardware runs fully under the new extension.
 > LNURLDevice is not actively supported. Some of the hardware installers above *may* still work for flashing,  
 > but this must be tested individually.
 
-# 📌 Note
+# Note
 
 LNURLDevice will remain available for compatibility but will **not** receive further updates.
 For stable and future-proof setups, please use the three new extensions introduced with LNBits v1.0. 
