@@ -1,7 +1,12 @@
-For LNURL based hardware (although you could use for software), people build things like bitcoin switches, Points of Sale, and ATMs.
+Deprecated extension. Use BitcoinSwitch, LNPoS or FOSSA instead.
 
-- LNPoS: https://lnbits.github.io/lnpos
-- bitcoinSwitch: https://github.com/lnbits/bitcoinSwitch
-- FOSSA: https://github.com/lnbits/fossa
-- BATM: https://github.com/lnbits/fossa
-- OfflineSwitch: https://github.com/lnbits/fossa
+Create LNURL-powered hardware devices like PoS terminals, switches, and ATMs.
+
+Its functions include:
+
+- Configuring LNPoS terminals for merchant payments
+- Setting up Bitcoin switches for IoT activation
+- Creating FOSSA and BATM hardware integrations
+- Supporting offline switch configurations
+
+This extension has been superseded by dedicated extensions that offer improved functionality and better hardware support.
