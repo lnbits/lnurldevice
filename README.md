@@ -38,7 +38,7 @@ Starting from **LNBits v1.0**, LNURLDevice was split into three dedicated extens
 ### New Extensions
 
 * **LNPoS** – Modern successor for the LNPoS device
-  → [https://extensions.lnbits.com/lnpos](https://github.com/lnbits/lnpos_extension)
+  → [https://github.com/lnbits/lnpos_extension](https://github.com/lnbits/lnpos_extension)
   
 * **BitcoinSwitch** – Switch/relay and automation controls
   → [https://github.com/lnbits/bitcoinswitch_extension](https://github.com/lnbits/bitcoinswitch_extension)
